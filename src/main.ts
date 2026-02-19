@@ -1,21 +1,22 @@
-const {
+import {
   app,
   BrowserWindow,
   ipcMain,
   dialog,
   Menu,
   nativeTheme,
-} = require('electron');
-const path = require('path');
-const fs = require('fs');
-const chokidar = require('chokidar');
-const { firstNonEmptyLine: _firstNonEmptyLine } = require('./notes-helpers');
+} from 'electron';
+import path from 'path';
+import fs from 'fs';
+import chokidar from 'chokidar';
+import { firstNonEmptyLine as _firstNonEmptyLine } from './notes-helpers';
+import type { NoteInfo } from './renderer/window';
 
 // ── Vault config persistence ──────────────────────────────────────────────────
 
 const _configPath = path.join(app.getPath('userData'), 'config.json');
 
-function _readConfig() {
+function _readConfig(): Record<string, string> {
   try {
     return JSON.parse(fs.readFileSync(_configPath, 'utf8'));
   } catch {
@@ -23,25 +24,25 @@ function _readConfig() {
   }
 }
 
-function _writeConfig(data) {
+function _writeConfig(data: Record<string, string>): void {
   fs.mkdirSync(path.dirname(_configPath), { recursive: true });
   fs.writeFileSync(_configPath, JSON.stringify(data, null, 2));
 }
 
-let _vaultPath = _readConfig().vaultPath || null;
-let _watcher = null;
-let _mainWindow = null;
+let _vaultPath: string | null = _readConfig().vaultPath || null;
+let _watcher: ReturnType<typeof chokidar.watch> | null = null;
+let _mainWindow: BrowserWindow | null = null;
 
 // ── Notes helpers ─────────────────────────────────────────────────────────────
 
-function _notePath(title) {
-  return path.join(_vaultPath, `${title}.md`);
+function _notePath(title: string): string {
+  return path.join(_vaultPath!, `${title}.md`);
 }
 
-function _listNotes() {
+function _listNotes(): NoteInfo[] {
   if (!_vaultPath) return [];
 
-  let files;
+  let files: string[];
   try {
     files = fs.readdirSync(_vaultPath);
   } catch {
@@ -52,8 +53,8 @@ function _listNotes() {
     .filter((f) => f.endsWith('.md') && !f.startsWith('.'))
     .map((f) => {
       const title = f.slice(0, -3);
-      const filePath = path.join(_vaultPath, f);
-      let stat, body;
+      const filePath = path.join(_vaultPath!, f);
+      let stat: fs.Stats, body: string;
       try {
         stat = fs.statSync(filePath);
         body = fs.readFileSync(filePath, 'utf8');
@@ -63,13 +64,13 @@ function _listNotes() {
       const excerpt = _firstNonEmptyLine(body);
       return { title, excerpt, mtime: stat.mtimeMs };
     })
-    .filter(Boolean)
+    .filter((n): n is NoteInfo => n !== null)
     .sort((a, b) => b.mtime - a.mtime);
 }
 
 // ── File watcher ──────────────────────────────────────────────────────────────
 
-function _startWatcher() {
+function _startWatcher(): void {
   if (_watcher) {
     _watcher.close();
     _watcher = null;
@@ -97,7 +98,7 @@ function _startWatcher() {
 ipcMain.handle('vault:get', () => _vaultPath);
 
 ipcMain.handle('vault:select', async () => {
-  const result = await dialog.showOpenDialog(_mainWindow, {
+  const result = await dialog.showOpenDialog(_mainWindow!, {
     title: 'Choose Vault Folder',
     properties: ['openDirectory', 'createDirectory'],
   });
@@ -111,7 +112,7 @@ ipcMain.handle('vault:select', async () => {
 
 ipcMain.handle('notes:list', () => _listNotes());
 
-ipcMain.handle('notes:read', (_event, title) => {
+ipcMain.handle('notes:read', (_event, title: string) => {
   try {
     return fs.readFileSync(_notePath(title), 'utf8');
   } catch {
@@ -119,17 +120,17 @@ ipcMain.handle('notes:read', (_event, title) => {
   }
 });
 
-ipcMain.handle('notes:write', (_event, title, body) => {
+ipcMain.handle('notes:write', (_event, title: string, body: string) => {
   if (!_vaultPath) return;
   fs.writeFileSync(_notePath(title), body, 'utf8');
 });
 
-ipcMain.handle('notes:rename', (_event, oldTitle, newTitle) => {
+ipcMain.handle('notes:rename', (_event, oldTitle: string, newTitle: string) => {
   if (!_vaultPath) return;
   fs.renameSync(_notePath(oldTitle), _notePath(newTitle));
 });
 
-ipcMain.handle('notes:delete', (_event, title) => {
+ipcMain.handle('notes:delete', (_event, title: string) => {
   if (!_vaultPath) return;
   try {
     fs.unlinkSync(_notePath(title));
@@ -142,18 +143,18 @@ ipcMain.handle('theme:isDark', () => nativeTheme.shouldUseDarkColors);
 
 // ── Application menu ──────────────────────────────────────────────────────────
 
-function _buildMenu() {
+function _buildMenu(): void {
   const isMac = process.platform === 'darwin';
 
-  const template = [
-    ...(isMac ? [{ role: 'appMenu' }] : []),
+  const template: Electron.MenuItemConstructorOptions[] = [
+    ...(isMac ? [{ role: 'appMenu' as const }] : []),
     {
       label: 'File',
       submenu: [
         {
           label: 'Change Vault…',
           click: async () => {
-            const result = await dialog.showOpenDialog(_mainWindow, {
+            const result = await dialog.showOpenDialog(_mainWindow!, {
               title: 'Choose Vault Folder',
               properties: ['openDirectory', 'createDirectory'],
             });
@@ -161,24 +162,24 @@ function _buildMenu() {
               _vaultPath = result.filePaths[0];
               _writeConfig({ vaultPath: _vaultPath });
               _startWatcher();
-              _mainWindow.webContents.send('notes:changed', _listNotes());
+              _mainWindow!.webContents.send('notes:changed', _listNotes());
             }
           },
         },
-        { type: 'separator' },
-        isMac ? { role: 'close' } : { role: 'quit' },
+        { type: 'separator' as const },
+        isMac ? { role: 'close' as const } : { role: 'quit' as const },
       ],
     },
     {
       label: 'Edit',
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' },
+        { role: 'undo' as const },
+        { role: 'redo' as const },
+        { type: 'separator' as const },
+        { role: 'cut' as const },
+        { role: 'copy' as const },
+        { role: 'paste' as const },
+        { role: 'selectAll' as const },
       ],
     },
     {
@@ -187,7 +188,7 @@ function _buildMenu() {
         {
           label: 'Toggle Developer Tools',
           accelerator: isMac ? 'Alt+Command+I' : 'Ctrl+Shift+I',
-          click: () => _mainWindow.webContents.toggleDevTools(),
+          click: () => _mainWindow!.webContents.toggleDevTools(),
         },
       ],
     },
@@ -198,7 +199,7 @@ function _buildMenu() {
 
 // ── Window creation ───────────────────────────────────────────────────────────
 
-function createWindow() {
+function createWindow(): void {
   _mainWindow = new BrowserWindow({
     width: 900,
     height: 700,
@@ -217,7 +218,7 @@ function createWindow() {
 
   // Push theme changes to renderer
   nativeTheme.on('updated', () => {
-    if (!_mainWindow.isDestroyed()) {
+    if (_mainWindow && !_mainWindow.isDestroyed()) {
       _mainWindow.webContents.send('theme:changed', nativeTheme.shouldUseDarkColors);
     }
   });

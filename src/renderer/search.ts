@@ -1,11 +1,9 @@
+import type { NoteInfo } from './window'
+
 /**
  * filterNotes — pure function, no side effects, no browser globals.
- *
- * @param {Array<{title: string, excerpt: string, mtime: number}>} notes
- * @param {string} query
- * @returns {Array}
  */
-function filterNotes(notes, query) {
+export function filterNotes(notes: NoteInfo[], query: string): NoteInfo[] {
   const q = query.trim().toLowerCase();
   if (!q) return notes; // already sorted by mtime desc from main process
 
@@ -16,5 +14,3 @@ function filterNotes(notes, query) {
     );
   });
 }
-
-module.exports = { filterNotes };

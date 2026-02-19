@@ -1,22 +1,33 @@
 // Renderer entry point — runs in Chromium, window.api injected by preload.
-// filterNotes, handleEnterDecision, etc. are loaded via search.js / app-logic.js.
+
+import { marked } from 'marked'
+import { filterNotes } from './search'
+import {
+  handleEnterDecision,
+  restoreSelectionIndex,
+  adjustFontSize,
+  FONT_SIZE_DEFAULT,
+  deleteWordBackward,
+  validateRename,
+} from './app-logic'
+import type { NoteInfo } from './window'
 
 window.addEventListener('DOMContentLoaded', async () => {
   await initTheme();
   await initVault();
 });
 
-async function initTheme() {
+async function initTheme(): Promise<void> {
   const dark = await window.api.isDarkMode();
   applyTheme(dark);
   window.api.onThemeChanged((isDark) => applyTheme(isDark));
 }
 
-function applyTheme(isDark) {
+function applyTheme(isDark: boolean): void {
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
 }
 
-async function initVault() {
+async function initVault(): Promise<void> {
   const vaultPath = await window.api.getVaultPath();
   if (!vaultPath) {
     await promptVaultSelection();
@@ -25,7 +36,7 @@ async function initVault() {
   }
 }
 
-async function promptVaultSelection() {
+async function promptVaultSelection(): Promise<void> {
   const overlay = document.createElement('div');
   overlay.id = 'vault-overlay';
   overlay.innerHTML = `
@@ -35,7 +46,7 @@ async function promptVaultSelection() {
   `;
   document.body.appendChild(overlay);
 
-  document.getElementById('vault-pick-btn').addEventListener('click', async () => {
+  document.getElementById('vault-pick-btn')!.addEventListener('click', async () => {
     const chosen = await window.api.selectVault();
     if (chosen) {
       overlay.remove();
@@ -44,35 +55,46 @@ async function promptVaultSelection() {
   });
 }
 
-function startApp() {
+function startApp(): void {
   const app = new NVApp();
   app.init();
 }
 
 class NVApp {
+  private _searchInput: HTMLInputElement;
+  private _resultsList: HTMLUListElement;
+  private _editor: HTMLTextAreaElement;
+  private _preview: HTMLDivElement;
+  private _toast: HTMLDivElement;
+  private _resizeHandle: HTMLDivElement;
+  private _resultsPanel: HTMLDivElement;
+
+  private _notes: NoteInfo[] = [];
+  private _filtered: NoteInfo[] = [];
+  private _selectedIndex = -1;
+  private _currentTitle: string | null = null;
+  private _saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private _toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private _previewMode = false;
+  private _renameMode = false;
+  private _savedQuery = '';
+  private _resultsPanelHeight = 200;
+  private _fontSize: number;
+
   constructor() {
-    this._searchInput = document.getElementById('search-input');
-    this._resultsList = document.getElementById('results-list');
-    this._editor = document.getElementById('editor');
-    this._preview = document.getElementById('preview');
-    this._toast = document.getElementById('toast');
-    this._resizeHandle = document.getElementById('resize-handle');
-    this._resultsPanel = document.getElementById('results-panel');
+    this._searchInput = document.getElementById('search-input') as HTMLInputElement;
+    this._resultsList = document.getElementById('results-list') as HTMLUListElement;
+    this._editor = document.getElementById('editor') as HTMLTextAreaElement;
+    this._preview = document.getElementById('preview') as HTMLDivElement;
+    this._toast = document.getElementById('toast') as HTMLDivElement;
+    this._resizeHandle = document.getElementById('resize-handle') as HTMLDivElement;
+    this._resultsPanel = document.getElementById('results-panel') as HTMLDivElement;
 
-    this._notes = [];           // full list from main process, sorted by mtime desc
-    this._filtered = [];        // subset matching current query
-    this._selectedIndex = -1;
-    this._currentTitle = null;  // title of note loaded in editor
-    this._saveTimer = null;
-
-    this._previewMode = false;
-    this._renameMode = false;
-    this._savedQuery = '';
-    this._resultsPanelHeight = 200; // px, user-resizable
-    this._fontSize = parseInt(localStorage.getItem('app-font-size'), 10) || FONT_SIZE_DEFAULT;
+    this._fontSize = parseInt(localStorage.getItem('app-font-size') ?? '', 10) || FONT_SIZE_DEFAULT;
   }
 
-  async init() {
+  async init(): Promise<void> {
     await this._loadNotes();
     this._bindEvents();
     this._bindResizeHandle();
@@ -83,14 +105,14 @@ class NVApp {
 
   // ── Data ──────────────────────────────────────────────────────────────────
 
-  async _loadNotes() {
+  private async _loadNotes(): Promise<void> {
     this._notes = await window.api.listNotes();
     this._renderResults(this._searchInput.value);
   }
 
   // ── Rendering ─────────────────────────────────────────────────────────────
 
-  _renderResults(query) {
+  private _renderResults(query: string): void {
     this._filtered = filterNotes(this._notes, query);
     this._resultsList.innerHTML = '';
 
@@ -103,7 +125,7 @@ class NVApp {
       return;
     }
 
-    this._filtered.forEach((note, i) => {
+    this._filtered.forEach((note) => {
       const li = document.createElement('li');
       li.dataset.title = note.title;
 
@@ -115,7 +137,7 @@ class NVApp {
       excerptEl.className = 'note-excerpt';
       excerptEl.textContent = note.excerpt;
 
-      li.setAttribute('tabindex', '-1'); // roving tabindex — _highlightSelected promotes selected one to 0
+      li.setAttribute('tabindex', '-1');
       li.appendChild(titleEl);
       li.appendChild(excerptEl);
       this._resultsList.appendChild(li);
@@ -125,12 +147,12 @@ class NVApp {
     this._highlightSelected(false);
   }
 
-  _highlightSelected(loadEditor = true) {
+  private _highlightSelected(loadEditor = true): void {
     const items = this._resultsList.querySelectorAll('li[data-title]');
     items.forEach((el, i) => {
       const selected = i === this._selectedIndex;
       el.classList.toggle('selected', selected);
-      el.setAttribute('tabindex', selected ? '0' : '-1'); // roving tabindex
+      el.setAttribute('tabindex', selected ? '0' : '-1');
     });
 
     if (loadEditor && this._selectedIndex >= 0 && this._filtered[this._selectedIndex]) {
@@ -140,7 +162,7 @@ class NVApp {
 
   // ── Note operations ───────────────────────────────────────────────────────
 
-  async _openNote(title) {
+  private async _openNote(title: string): Promise<void> {
     if (this._currentTitle === title) return;
     this._cancelSave();
     this._currentTitle = title;
@@ -149,7 +171,7 @@ class NVApp {
     if (this._previewMode) this._renderPreview();
   }
 
-  async _createNote(title) {
+  private async _createNote(title: string): Promise<void> {
     await window.api.writeNote(title, '');
     await this._loadNotes();
     const idx = this._filtered.findIndex((n) => n.title === title);
@@ -160,7 +182,7 @@ class NVApp {
     this._editor.focus();
   }
 
-  async _deleteCurrentNote() {
+  private async _deleteCurrentNote(): Promise<void> {
     if (!this._currentTitle) return;
     const deleted = this._currentTitle;
     await window.api.deleteNote(deleted);
@@ -173,7 +195,7 @@ class NVApp {
 
   // ── Rename mode ─────────────────────────────────────────────────────────────
 
-  _enterRenameMode() {
+  private _enterRenameMode(): void {
     if (!this._currentTitle) return;
     this._renameMode = true;
     this._savedQuery = this._searchInput.value;
@@ -184,15 +206,15 @@ class NVApp {
     this._searchInput.focus();
   }
 
-  async _commitRename() {
+  private async _commitRename(): Promise<void> {
     const newTitle = this._searchInput.value.trim();
-    const error = validateRename(newTitle, this._currentTitle, this._notes.map((n) => n.title));
+    const error = validateRename(newTitle, this._currentTitle!, this._notes.map((n) => n.title));
     if (error) {
       this._showToast(error);
       return;
     }
 
-    const oldTitle = this._currentTitle;
+    const oldTitle = this._currentTitle!;
     if (newTitle !== oldTitle) {
       await window.api.renameNote(oldTitle, newTitle);
       this._currentTitle = newTitle;
@@ -200,11 +222,11 @@ class NVApp {
     this._exitRenameMode(this._savedQuery);
   }
 
-  _cancelRename() {
+  private _cancelRename(): void {
     this._exitRenameMode(this._savedQuery);
   }
 
-  _exitRenameMode(query) {
+  private _exitRenameMode(query: string): void {
     this._renameMode = false;
     this._searchInput.placeholder = 'Search or create note…';
     this._searchInput.classList.remove('rename-mode');
@@ -213,7 +235,7 @@ class NVApp {
     this._highlightSelected(false);
   }
 
-  _showToast(message) {
+  private _showToast(message: string): void {
     if (this._toastTimer) clearTimeout(this._toastTimer);
     this._toast.textContent = message;
     this._toast.hidden = false;
@@ -228,34 +250,34 @@ class NVApp {
 
   // ── Autosave ──────────────────────────────────────────────────────────────
 
-  _scheduleAutosave() {
+  private _scheduleAutosave(): void {
     this._cancelSave();
     this._saveTimer = setTimeout(() => this._save(), 500);
   }
 
-  _cancelSave() {
+  private _cancelSave(): void {
     if (this._saveTimer) {
       clearTimeout(this._saveTimer);
       this._saveTimer = null;
     }
   }
 
-  async _save() {
+  private async _save(): Promise<void> {
     if (!this._currentTitle) return;
     await window.api.writeNote(this._currentTitle, this._editor.value);
   }
 
   // ── Event wiring ──────────────────────────────────────────────────────────
 
-  _applyWordBackspace(el) {
+  private _applyWordBackspace(el: HTMLInputElement | HTMLTextAreaElement): void {
     const { newValue, newCursor } = deleteWordBackward(
-      el.value, el.selectionStart, el.selectionEnd,
+      el.value, el.selectionStart!, el.selectionEnd!,
     );
     el.value = newValue;
     el.setSelectionRange(newCursor, newCursor);
   }
 
-  _bindEvents() {
+  private _bindEvents(): void {
     this._searchInput.addEventListener('input', () => {
       if (this._renameMode) return;
       this._renderResults(this._searchInput.value);
@@ -327,10 +349,8 @@ class NVApp {
       }
     });
 
-    // When focus lands on any list item (via Tab or click), sync selection and
-    // load the note. _openNote guards against reloading the same title.
     this._resultsList.addEventListener('focusin', (e) => {
-      const li = e.target.closest('li[data-title]');
+      const li = (e.target as Element).closest('li[data-title]');
       if (!li) return;
       const items = [...this._resultsList.querySelectorAll('li[data-title]')];
       const idx = items.indexOf(li);
@@ -340,9 +360,8 @@ class NVApp {
       this._openNote(this._filtered[idx]?.title);
     });
 
-    // Keyboard handling while any list item has focus.
     this._resultsList.addEventListener('keydown', (e) => {
-      if (!e.target.closest('li[data-title]')) return;
+      if (!(e.target as Element).closest('li[data-title]')) return;
       if (e.key === 'Enter') {
         e.preventDefault();
         this._editor.focus();
@@ -366,7 +385,6 @@ class NVApp {
       this._highlightSelected(true);
     });
 
-    // Global shortcuts — active regardless of which panel has focus.
     window.addEventListener('keydown', (e) => {
       if (!e.ctrlKey && !e.metaKey) return;
       if (e.key === '+' || e.key === '=') { e.preventDefault(); this._changeFontSize(1); }
@@ -378,22 +396,20 @@ class NVApp {
     });
   }
 
-  // Moves selection and shifts DOM focus to the new list item so that
-  // subsequent key events (Enter, Escape) fire on the list, not the search bar.
-  _moveSelectionInList(delta) {
+  private _moveSelectionInList(delta: number): void {
     if (this._filtered.length === 0) return;
     this._selectedIndex = Math.max(
       0,
       Math.min(this._filtered.length - 1, this._selectedIndex + delta)
     );
-    this._highlightSelected(false); // update CSS + tabindex
+    this._highlightSelected(false);
     const items = this._resultsList.querySelectorAll('li[data-title]');
-    const item = items[this._selectedIndex];
+    const item = items[this._selectedIndex] as HTMLElement | undefined;
     item?.scrollIntoView({ block: 'nearest' });
-    item?.focus(); // triggers focusin → _openNote
+    item?.focus();
   }
 
-  async _handleEnter() {
+  private async _handleEnter(): Promise<void> {
     const decision = handleEnterDecision(
       this._filtered,
       this._selectedIndex,
@@ -411,7 +427,7 @@ class NVApp {
 
   // ── Resize handle ─────────────────────────────────────────────────────────
 
-  _bindResizeHandle() {
+  private _bindResizeHandle(): void {
     let startY = 0;
     let startH = 0;
 
@@ -420,7 +436,7 @@ class NVApp {
       startH = this._resultsPanelHeight;
       this._resizeHandle.classList.add('dragging');
 
-      const onMove = (ev) => {
+      const onMove = (ev: MouseEvent) => {
         const delta = ev.clientY - startY;
         this._resultsPanelHeight = Math.max(60, Math.min(500, startH + delta));
         this._applyResultsPanelHeight();
@@ -438,12 +454,12 @@ class NVApp {
     });
   }
 
-  _applyResultsPanelHeight() {
+  private _applyResultsPanelHeight(): void {
     this._resultsPanel.style.height = `${this._resultsPanelHeight}px`;
     this._resultsPanel.style.maxHeight = `${this._resultsPanelHeight}px`;
   }
 
-  _togglePreview() {
+  private _togglePreview(): void {
     this._previewMode = !this._previewMode;
     this._editor.hidden = this._previewMode;
     this._preview.hidden = !this._previewMode;
@@ -454,17 +470,17 @@ class NVApp {
     }
   }
 
-  _renderPreview() {
-    this._preview.innerHTML = marked.parse(this._editor.value || '');
+  private _renderPreview(): void {
+    this._preview.innerHTML = marked.parse(this._editor.value || '') as string;
   }
 
-  _applyFontSize() {
+  private _applyFontSize(): void {
     document.documentElement.style.setProperty('--app-font-size', `${this._fontSize}px`);
   }
 
-  _changeFontSize(delta) {
+  private _changeFontSize(delta: number): void {
     this._fontSize = adjustFontSize(this._fontSize, delta);
-    localStorage.setItem('app-font-size', this._fontSize);
+    localStorage.setItem('app-font-size', String(this._fontSize));
     this._applyFontSize();
   }
 }

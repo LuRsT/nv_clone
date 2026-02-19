@@ -2,10 +2,12 @@
   "name": "nv",
   "version": "1.0.0",
   "description": "A keyboard-first Notational Velocity clone for plain-text markdown notes",
-  "main": "src/main.js",
+  "main": "dist/main.js",
   "scripts": {
-    "start": "electron .",
-    "test": "node --test test/**/*.test.js"
+    "build": "node build.js",
+    "start": "node build.js && electron .",
+    "test": "tsx --test 'test/**/*.test.ts'",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +17,10 @@
     "marked": "^17.0.3"
   },
   "devDependencies": {
-    "electron": "^40.6.0"
+    "@types/node": "^25.3.0",
+    "electron": "^40.6.0",
+    "esbuild": "^0.27.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }

@@ -1,16 +1,17 @@
 // Pure renderer logic — no DOM, no window.api, no side effects.
 
+import type { NoteInfo } from './window'
+
 /**
  * Decides what to do when Enter is pressed in the search bar.
  * Returns {action: 'open', title} when results exist, {action: 'create', title}
  * when the list is empty, or null when the query is blank.
- *
- * @param {Array<{title: string}>} filteredNotes
- * @param {number} selectedIndex
- * @param {string} query
- * @returns {{action: string, title: string}|null}
  */
-function handleEnterDecision(filteredNotes, selectedIndex, query) {
+export function handleEnterDecision(
+  filteredNotes: NoteInfo[],
+  selectedIndex: number,
+  query: string,
+): { action: string; title: string } | null {
   const q = query.trim();
   if (!q) return null;
 
@@ -26,12 +27,8 @@ function handleEnterDecision(filteredNotes, selectedIndex, query) {
  * After the results list is re-rendered, returns the index that should be
  * selected. Tries to keep the currently open note highlighted; falls back to
  * the first item. Returns -1 when the list is empty.
- *
- * @param {Array<{title: string}>} filteredNotes
- * @param {string|null} currentTitle
- * @returns {number}
  */
-function restoreSelectionIndex(filteredNotes, currentTitle) {
+export function restoreSelectionIndex(filteredNotes: NoteInfo[], currentTitle: string | null): number {
   if (filteredNotes.length === 0) return -1;
 
   if (currentTitle) {
@@ -42,19 +39,15 @@ function restoreSelectionIndex(filteredNotes, currentTitle) {
   return 0;
 }
 
-const FONT_SIZE_DEFAULT = 14;
+export const FONT_SIZE_DEFAULT = 14;
 const _FONT_SIZE_MIN = 10;
 const _FONT_SIZE_MAX = 24;
 
 /**
  * Returns the new editor font size after applying delta steps (+1 / -1 / 0).
  * Clamped to [_FONT_SIZE_MIN, _FONT_SIZE_MAX]. Pass delta=0 to reset to default.
- *
- * @param {number} current
- * @param {number} delta
- * @returns {number}
  */
-function adjustFontSize(current, delta) {
+export function adjustFontSize(current: number, delta: number): number {
   if (delta === 0) return FONT_SIZE_DEFAULT;
   return Math.max(_FONT_SIZE_MIN, Math.min(_FONT_SIZE_MAX, current + delta));
 }
@@ -63,13 +56,12 @@ function adjustFontSize(current, delta) {
  * Ctrl+W / kill-word-backward: deletes from the cursor back to the start of
  * the preceding word (skipping any whitespace immediately before the cursor).
  * If text is selected, deletes the selection instead.
- *
- * @param {string} value
- * @param {number} selectionStart
- * @param {number} selectionEnd
- * @returns {{newValue: string, newCursor: number}}
  */
-function deleteWordBackward(value, selectionStart, selectionEnd) {
+export function deleteWordBackward(
+  value: string,
+  selectionStart: number,
+  selectionEnd: number,
+): { newValue: string; newCursor: number } {
   if (selectionStart !== selectionEnd) {
     return {
       newValue: value.slice(0, selectionStart) + value.slice(selectionEnd),
@@ -92,13 +84,12 @@ function deleteWordBackward(value, selectionStart, selectionEnd) {
 /**
  * Validates a rename operation before hitting the disk.
  * Returns null if the rename is acceptable, or an error string to display.
- *
- * @param {string} newTitle
- * @param {string} currentTitle
- * @param {string[]} existingTitles
- * @returns {string|null}
  */
-function validateRename(newTitle, currentTitle, existingTitles) {
+export function validateRename(
+  newTitle: string,
+  currentTitle: string,
+  existingTitles: string[],
+): string | null {
   const trimmed = newTitle.trim();
   if (!trimmed) return 'Title cannot be empty';
   if (trimmed !== currentTitle && existingTitles.includes(trimmed)) {
@@ -106,5 +97,3 @@ function validateRename(newTitle, currentTitle, existingTitles) {
   }
   return null;
 }
-
-module.exports = { handleEnterDecision, restoreSelectionIndex, adjustFontSize, FONT_SIZE_DEFAULT, deleteWordBackward, validateRename };
