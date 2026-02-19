@@ -64,6 +64,7 @@ class NVApp {
     this._saveTimer = null;
 
     this._resultsPanelHeight = 200; // px, user-resizable
+    this._fontSize = parseInt(localStorage.getItem('editor-font-size'), 10) || FONT_SIZE_DEFAULT;
   }
 
   async init() {
@@ -71,6 +72,7 @@ class NVApp {
     this._bindEvents();
     this._bindResizeHandle();
     this._applyResultsPanelHeight();
+    this._applyFontSize();
     this._searchInput.focus();
   }
 
@@ -272,6 +274,14 @@ class NVApp {
       this._renderResults(this._searchInput.value);
       this._highlightSelected(true);
     });
+
+    // Global font-size shortcuts — active regardless of which panel has focus.
+    window.addEventListener('keydown', (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); this._changeFontSize(1); }
+      else if (e.key === '-') { e.preventDefault(); this._changeFontSize(-1); }
+      else if (e.key === '0') { e.preventDefault(); this._changeFontSize(0); }
+    });
   }
 
   // Moves selection and shifts DOM focus to the new list item so that
@@ -337,5 +347,15 @@ class NVApp {
   _applyResultsPanelHeight() {
     this._resultsPanel.style.height = `${this._resultsPanelHeight}px`;
     this._resultsPanel.style.maxHeight = `${this._resultsPanelHeight}px`;
+  }
+
+  _applyFontSize() {
+    document.documentElement.style.setProperty('--editor-font-size', `${this._fontSize}px`);
+  }
+
+  _changeFontSize(delta) {
+    this._fontSize = adjustFontSize(this._fontSize, delta);
+    localStorage.setItem('editor-font-size', this._fontSize);
+    this._applyFontSize();
   }
 }

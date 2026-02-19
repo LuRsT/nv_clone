@@ -42,4 +42,21 @@ function restoreSelectionIndex(filteredNotes, currentTitle) {
   return 0;
 }
 
-module.exports = { handleEnterDecision, restoreSelectionIndex };
+const FONT_SIZE_DEFAULT = 14;
+const _FONT_SIZE_MIN = 10;
+const _FONT_SIZE_MAX = 24;
+
+/**
+ * Returns the new editor font size after applying delta steps (+1 / -1 / 0).
+ * Clamped to [_FONT_SIZE_MIN, _FONT_SIZE_MAX]. Pass delta=0 to reset to default.
+ *
+ * @param {number} current
+ * @param {number} delta
+ * @returns {number}
+ */
+function adjustFontSize(current, delta) {
+  if (delta === 0) return FONT_SIZE_DEFAULT;
+  return Math.max(_FONT_SIZE_MIN, Math.min(_FONT_SIZE_MAX, current + delta));
+}
+
+module.exports = { handleEnterDecision, restoreSelectionIndex, adjustFontSize, FONT_SIZE_DEFAULT };

@@ -3,7 +3,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { handleEnterDecision, restoreSelectionIndex } = require('../src/renderer/app-logic.js');
+const { handleEnterDecision, restoreSelectionIndex, adjustFontSize, FONT_SIZE_DEFAULT } = require('../src/renderer/app-logic.js');
 
 // ── handleEnterDecision ────────────────────────────────────────────────────────
 
@@ -93,4 +93,46 @@ test('returns -1 when filtered list is empty', () => {
 
   // It should return -1 (no selection)
   assert.equal(result, -1);
+});
+
+// ── adjustFontSize ─────────────────────────────────────────────────────────────
+
+test('increases font size by one step', () => {
+  // When pressing Ctrl++ from the default size…
+  const result = adjustFontSize(FONT_SIZE_DEFAULT, 1);
+
+  // It should return default + 1
+  assert.equal(result, FONT_SIZE_DEFAULT + 1);
+});
+
+test('decreases font size by one step', () => {
+  // When pressing Ctrl+- from the default size…
+  const result = adjustFontSize(FONT_SIZE_DEFAULT, -1);
+
+  // It should return default - 1
+  assert.equal(result, FONT_SIZE_DEFAULT - 1);
+});
+
+test('clamps at maximum font size', () => {
+  // When already at the maximum…
+  const result = adjustFontSize(24, 1);
+
+  // It should not exceed the ceiling
+  assert.equal(result, 24);
+});
+
+test('clamps at minimum font size', () => {
+  // When already at the minimum…
+  const result = adjustFontSize(10, -1);
+
+  // It should not go below the floor
+  assert.equal(result, 10);
+});
+
+test('reset returns the default font size', () => {
+  // When resetting from an arbitrary size…
+  const result = adjustFontSize(FONT_SIZE_DEFAULT, 0);
+
+  // It should return the default unchanged
+  assert.equal(result, FONT_SIZE_DEFAULT);
 });

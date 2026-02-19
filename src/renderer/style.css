@@ -9,6 +9,7 @@
   --accent-bg: #e8f0fe;
   --handle: #c0c0c0;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  --editor-font-size: 14px;
 }
 
 html[data-theme='dark'] {
@@ -153,7 +154,7 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: var(--editor-font-size);
   line-height: 1.6;
   tab-size: 2;
 }
