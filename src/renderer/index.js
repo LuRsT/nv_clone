@@ -203,6 +203,14 @@ class NVApp {
 
   // ── Event wiring ──────────────────────────────────────────────────────────
 
+  _applyWordBackspace(el) {
+    const { newValue, newCursor } = deleteWordBackward(
+      el.value, el.selectionStart, el.selectionEnd,
+    );
+    el.value = newValue;
+    el.setSelectionRange(newCursor, newCursor);
+  }
+
   _bindEvents() {
     this._searchInput.addEventListener('input', () => {
       this._renderResults(this._searchInput.value);
@@ -210,6 +218,13 @@ class NVApp {
     });
 
     this._searchInput.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'w') {
+        e.preventDefault();
+        this._applyWordBackspace(this._searchInput);
+        this._renderResults(this._searchInput.value);
+        this._highlightSelected(true);
+        return;
+      }
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
@@ -240,6 +255,12 @@ class NVApp {
 
     this._editor.addEventListener('input', () => this._scheduleAutosave());
     this._editor.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'w') {
+        e.preventDefault();
+        this._applyWordBackspace(this._editor);
+        this._scheduleAutosave();
+        return;
+      }
       if (e.ctrlKey && e.key === 'j') {
         e.preventDefault();
         this._moveSelectionInList(1);

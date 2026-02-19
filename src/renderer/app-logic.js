@@ -59,4 +59,34 @@ function adjustFontSize(current, delta) {
   return Math.max(_FONT_SIZE_MIN, Math.min(_FONT_SIZE_MAX, current + delta));
 }
 
-module.exports = { handleEnterDecision, restoreSelectionIndex, adjustFontSize, FONT_SIZE_DEFAULT };
+/**
+ * Ctrl+W / kill-word-backward: deletes from the cursor back to the start of
+ * the preceding word (skipping any whitespace immediately before the cursor).
+ * If text is selected, deletes the selection instead.
+ *
+ * @param {string} value
+ * @param {number} selectionStart
+ * @param {number} selectionEnd
+ * @returns {{newValue: string, newCursor: number}}
+ */
+function deleteWordBackward(value, selectionStart, selectionEnd) {
+  if (selectionStart !== selectionEnd) {
+    return {
+      newValue: value.slice(0, selectionStart) + value.slice(selectionEnd),
+      newCursor: selectionStart,
+    };
+  }
+
+  if (selectionStart === 0) return { newValue: value, newCursor: 0 };
+
+  let pos = selectionStart;
+  while (pos > 0 && /\s/.test(value[pos - 1])) pos--;
+  while (pos > 0 && !/\s/.test(value[pos - 1])) pos--;
+
+  return {
+    newValue: value.slice(0, pos) + value.slice(selectionStart),
+    newCursor: pos,
+  };
+}
+
+module.exports = { handleEnterDecision, restoreSelectionIndex, adjustFontSize, FONT_SIZE_DEFAULT, deleteWordBackward };

@@ -3,7 +3,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { handleEnterDecision, restoreSelectionIndex, adjustFontSize, FONT_SIZE_DEFAULT } = require('../src/renderer/app-logic.js');
+const { handleEnterDecision, restoreSelectionIndex, adjustFontSize, FONT_SIZE_DEFAULT, deleteWordBackward } = require('../src/renderer/app-logic.js');
 
 // ── handleEnterDecision ────────────────────────────────────────────────────────
 
@@ -135,4 +135,54 @@ test('reset returns the default font size', () => {
 
   // It should return the default unchanged
   assert.equal(result, FONT_SIZE_DEFAULT);
+});
+
+// ── deleteWordBackward ─────────────────────────────────────────────────────────
+
+test('deletes the word before the cursor', () => {
+  // When cursor is at the end of "hello world"…
+  const result = deleteWordBackward('hello world', 11, 11);
+
+  // It should remove "world" and leave the trailing space
+  assert.deepEqual(result, { newValue: 'hello ', newCursor: 6 });
+});
+
+test('skips whitespace then deletes the word behind it', () => {
+  // When cursor is after trailing spaces in "hello world  "…
+  const result = deleteWordBackward('hello world  ', 13, 13);
+
+  // It should skip the spaces and delete "world" too
+  assert.deepEqual(result, { newValue: 'hello ', newCursor: 6 });
+});
+
+test('deletes from cursor back to start when no whitespace exists', () => {
+  // When the text has no spaces and cursor is at the end…
+  const result = deleteWordBackward('hello', 5, 5);
+
+  // It should clear the entire value
+  assert.deepEqual(result, { newValue: '', newCursor: 0 });
+});
+
+test('deletes only the characters before the cursor mid-word', () => {
+  // When cursor is in the middle of the only word…
+  const result = deleteWordBackward('hello', 3, 3);
+
+  // It should delete "hel" and leave "lo"
+  assert.deepEqual(result, { newValue: 'lo', newCursor: 0 });
+});
+
+test('is a no-op when cursor is at position 0', () => {
+  // When there is nothing before the cursor…
+  const result = deleteWordBackward('hello', 0, 0);
+
+  // It should leave the value unchanged
+  assert.deepEqual(result, { newValue: 'hello', newCursor: 0 });
+});
+
+test('deletes the selection when one exists', () => {
+  // When text is selected…
+  const result = deleteWordBackward('hello world', 6, 11);
+
+  // It should delete just the selection
+  assert.deepEqual(result, { newValue: 'hello ', newCursor: 6 });
 });

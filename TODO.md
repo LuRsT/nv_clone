@@ -21,3 +21,6 @@
 - [x] Extract handleEnterDecision and restoreSelectionIndex to app-logic module with tests
 - [x] Add Ctrl++/- font size adjustment with persistence
 - [x] Add Ctrl+P markdown preview toggle
+- [x] Add Delete and Ctrl+D shortcuts to delete selected note
+- [x] Show toast notification when a note is deleted
+- [x] Add Ctrl+W delete-word-backward for search input and editor
