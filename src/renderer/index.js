@@ -108,27 +108,9 @@ class NVApp {
       excerptEl.className = 'note-excerpt';
       excerptEl.textContent = note.excerpt;
 
-      li.setAttribute('tabindex', '0');
+      li.setAttribute('tabindex', '-1'); // roving tabindex — _highlightSelected promotes selected one to 0
       li.appendChild(titleEl);
       li.appendChild(excerptEl);
-      li.addEventListener('click', () => {
-        this._selectedIndex = i;
-        this._highlightSelected(true);
-      });
-      li.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          this._editor.focus();
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          this._moveSelectionInList(1);
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          this._moveSelectionInList(-1);
-        } else if (e.key === 'Escape') {
-          this._searchInput.focus();
-        }
-      });
       this._resultsList.appendChild(li);
     });
 
@@ -143,7 +125,9 @@ class NVApp {
   _highlightSelected(loadEditor = true) {
     const items = this._resultsList.querySelectorAll('li[data-title]');
     items.forEach((el, i) => {
-      el.classList.toggle('selected', i === this._selectedIndex);
+      const selected = i === this._selectedIndex;
+      el.classList.toggle('selected', selected);
+      el.setAttribute('tabindex', selected ? '0' : '-1'); // roving tabindex
     });
 
     if (loadEditor && this._selectedIndex >= 0 && this._filtered[this._selectedIndex]) {
@@ -245,6 +229,36 @@ class NVApp {
       }
     });
 
+    // When focus lands on any list item (via Tab or click), sync selection and
+    // load the note. _openNote guards against reloading the same title.
+    this._resultsList.addEventListener('focusin', (e) => {
+      const li = e.target.closest('li[data-title]');
+      if (!li) return;
+      const items = [...this._resultsList.querySelectorAll('li[data-title]')];
+      const idx = items.indexOf(li);
+      if (idx === -1) return;
+      this._selectedIndex = idx;
+      this._highlightSelected(false);
+      this._openNote(this._filtered[idx]?.title);
+    });
+
+    // Keyboard handling while any list item has focus.
+    this._resultsList.addEventListener('keydown', (e) => {
+      if (!e.target.closest('li[data-title]')) return;
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this._editor.focus();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this._moveSelectionInList(1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this._moveSelectionInList(-1);
+      } else if (e.key === 'Escape') {
+        this._searchInput.focus();
+      }
+    });
+
     window.api.onNotesChanged((notes) => {
       this._notes = notes;
       this._renderResults(this._searchInput.value);
@@ -264,27 +278,36 @@ class NVApp {
   }
 
   // Like _moveSelection but also moves DOM focus to the new item (used when
-  // the list itself has focus and the user presses arrow keys).
+  // the list itself has focus and the user presses arrow keys). Note loading
+  // the note is handled by the ul focusin listener once focus moves.
   _moveSelectionInList(delta) {
-    this._moveSelection(delta);
+    if (this._filtered.length === 0) return;
+    this._selectedIndex = Math.max(
+      0,
+      Math.min(this._filtered.length - 1, this._selectedIndex + delta)
+    );
+    this._highlightSelected(false); // update CSS + tabindex
     const items = this._resultsList.querySelectorAll('li[data-title]');
-    items[this._selectedIndex]?.focus();
+    const item = items[this._selectedIndex];
+    item?.scrollIntoView({ block: 'nearest' });
+    item?.focus(); // triggers focusin → _openNote
   }
 
   async _handleEnter() {
     const query = this._searchInput.value.trim();
     if (!query) return;
 
-    const exact = this._filtered.find(
-      (n) => n.title.toLowerCase() === query.toLowerCase()
-    );
-    if (exact) {
-      this._currentTitle = exact.title;
-      this._editor.value = await window.api.readNote(exact.title);
+    // Results exist → open the selected (or first) result. Never create when
+    // notes are showing; that would require deliberately clearing the search.
+    if (this._filtered.length > 0) {
+      const idx = this._selectedIndex >= 0 ? this._selectedIndex : 0;
+      const note = this._filtered[idx];
+      await this._openNote(note.title);
       this._editor.focus();
       return;
     }
 
+    // Empty list → no match at all → create a new note named after the query.
     await this._createNote(query);
   }
 
