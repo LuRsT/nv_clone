@@ -110,7 +110,10 @@ class NVApp {
 
       li.appendChild(titleEl);
       li.appendChild(excerptEl);
-      li.addEventListener('click', () => this._selectIndex(i, true));
+      li.addEventListener('click', () => {
+        this._selectedIndex = i;
+        this._highlightSelected(true);
+      });
       this._resultsList.appendChild(li);
     });
 
