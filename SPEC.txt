@@ -1,0 +1,171 @@
+# Notational Velocity Clone — Product Spec
+
+## Overview
+
+A minimal, keyboard-first note-taking app built in Electron, inspired by Notational Velocity. Notes live as plain `.md` files in a user-chosen folder. The entire experience is built around a single three-panel window: search bar, results list, editor.
+
+---
+
+## Tech Stack
+
+- **Framework:** Electron
+- **Storage:** Plain `.md` files on disk (no database)
+- **Vault:** User-selected folder (e.g. `~/Notes`), stored in app config and remembered across sessions
+
+---
+
+## Application Layout
+
+A single window divided vertically into three regions, top to bottom:
+
+```
+┌─────────────────────────────────┐
+│         Search Bar              │  ← always visible, auto-focused on launch
+├─────────────────────────────────┤
+│                                 │
+│         Results List            │  ← filtered list of notes
+│                                 │
+├─────────────────────────────────┤
+│                                 │
+│         Editor                  │  ← raw markdown editor
+│                                 │
+└─────────────────────────────────┘
+```
+
+No sidebars, no toolbar, no menubar clutter. The window should be resizable and the split between the results list and editor should be draggable.
+
+---
+
+## Vault Selection
+
+- On first launch, prompt the user to choose a folder via the native OS folder picker. This becomes their vault.
+- The vault path is persisted in Electron's `app.getPath('userData')` config.
+- On subsequent launches, open directly to the vault with no splash screen.
+- A "Change Vault" option is available in the application menu (macOS menu bar / system tray menu).
+
+---
+
+## Notes
+
+- Each note is a `.md` file inside the vault folder.
+- The **filename** (without extension) is the note's **title**.
+- The **file contents** are the note's **body**.
+- No frontmatter, no metadata files — the filesystem is the source of truth.
+- Subdirectories within the vault are ignored (flat structure only).
+- File changes made externally (another editor, sync tools) are picked up automatically via filesystem watching (`chokidar` or Electron's `fs.watch`).
+
+---
+
+## Search Bar
+
+- Auto-focused on app launch and on vault open.
+- Searches both note **titles** (filenames) and **body contents** simultaneously.
+- Search is fuzzy/substring — results update instantly on each keystroke.
+- Results are sorted by **most recently modified**, descending.
+- When the search bar is empty, all notes are shown, sorted by most recently modified.
+
+### Creating a Note
+
+- If the search query does not exactly match any existing note title, pressing **Enter** creates a new note with:
+  - Filename: `<search text>.md`
+  - Empty body
+- Focus immediately moves to the editor after creation.
+- If the search query exactly matches an existing note title, pressing **Enter** opens that note in the editor.
+
+### Keyboard Behavior in Search Bar
+
+- **↑ / ↓ arrow keys** navigate up and down through the results list without leaving the search bar.
+- The highlighted result is reflected live in the editor below.
+- **Enter** on a highlighted result opens it in the editor (or creates a new note if no results exist).
+
+---
+
+## Results List
+
+- Displays matching notes as a single-column list.
+- Each row shows the note **title** and, below it in a smaller/dimmer font, a short excerpt of the body (first non-empty line, truncated to fit).
+- The currently selected note is highlighted.
+- Clicking a note in the list selects it and moves focus to the editor.
+- No multi-select.
+
+---
+
+## Editor
+
+- Raw markdown text editor — no preview, no rendering. What you type is what you see.
+- A good monospace or editor-friendly font (e.g. system monospace, or a bundled option like JetBrains Mono).
+- Autosaves continuously — on every keystroke with a short debounce (e.g. 500ms). No save button, no save shortcut needed.
+- The editor's first line does **not** double as the title — the title is always the filename. The editor is purely for body content.
+- Supports standard text editing shortcuts (Cmd/Ctrl+Z undo, Cmd/Ctrl+A select all, etc).
+
+### Keyboard Behavior in Editor
+
+- **Escape** returns focus to the search bar (search text is preserved, cursor goes to end of search input).
+
+---
+
+## Deleting Notes
+
+- Triggered via **Cmd+Delete** (macOS) / **Ctrl+Delete** (Windows/Linux) when a note is selected.
+- No confirmation dialog — the file is deleted from disk immediately.
+- After deletion, focus returns to the search bar and the results list updates.
+- There is no trash or undo for deletion.
+
+---
+
+## Theming
+
+- Follows the **OS system appearance** (light or dark) automatically using Electron's `nativeTheme`.
+- Light mode: white/off-white background, dark text.
+- Dark mode: dark gray background, light text.
+- Accent color for selection highlight should use the OS accent color where possible.
+- No custom theme picker required at launch.
+
+---
+
+## Application Menu
+
+Minimal menu. At minimum:
+
+- **File**
+  - Change Vault…
+  - Quit
+- **Edit**
+  - Undo / Redo / Cut / Copy / Paste (standard)
+- **View**
+  - Toggle Developer Tools (dev builds only)
+
+---
+
+## Keyboard Shortcut Summary
+
+| Shortcut | Action |
+|---|---|
+| App launch | Focus search bar |
+| Typing in search | Filter results live |
+| ↑ / ↓ (in search bar) | Navigate results list |
+| Enter (in search bar, match found) | Open selected note, focus editor |
+| Enter (in search bar, no match) | Create new note, focus editor |
+| Escape (in editor) | Return focus to search bar |
+| Cmd/Ctrl+Delete | Delete currently selected note |
+
+---
+
+## File Watching
+
+- The app watches the vault folder for external changes using `chokidar`.
+- New files added externally appear in the list immediately.
+- Files modified externally refresh in the editor if currently open.
+- Files deleted externally are removed from the list; if open in the editor, the editor clears.
+
+---
+
+## Out of Scope (v1)
+
+- Subfolders / nested notes
+- Tags
+- Markdown preview or split view
+- Note renaming via the UI (users can rename files externally)
+- Multiple vaults open simultaneously
+- Sync (users can point the vault at a synced folder like iCloud/Dropbox themselves)
+- Mobile
