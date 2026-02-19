@@ -9,6 +9,7 @@ const {
 const path = require('path');
 const fs = require('fs');
 const chokidar = require('chokidar');
+const { firstNonEmptyLine: _firstNonEmptyLine } = require('./notes-helpers');
 
 // ── Vault config persistence ──────────────────────────────────────────────────
 
@@ -64,14 +65,6 @@ function _listNotes() {
     })
     .filter(Boolean)
     .sort((a, b) => b.mtime - a.mtime);
-}
-
-function _firstNonEmptyLine(text) {
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim();
-    if (trimmed) return trimmed;
-  }
-  return '';
 }
 
 // ── File watcher ──────────────────────────────────────────────────────────────

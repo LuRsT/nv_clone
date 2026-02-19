@@ -51,3 +51,7 @@ Three vertical panels in a single window (no sidebars, no toolbar):
 ### IPC Conventions
 
 All file I/O lives in the main process. The renderer communicates via named IPC channels (e.g., `notes:list`, `notes:read`, `notes:write`, `notes:delete`, `vault:select`). The preload script exposes these as a `window.api` object using `contextBridge`.
+
+# Developing
+
+Always use the agents in agents/ for any development, the code should be SOLID and use Hexagonal architecture

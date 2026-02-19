@@ -1,17 +1,9 @@
-// Unit tests for main-process note helpers.
+// Unit tests for notes-helpers — pure functions, no Electron required.
 // Run with: node --test test/notes.test.js
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-
-// Extract the pure helper inline (avoids importing Electron-dependent main.js)
-function firstNonEmptyLine(text) {
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim();
-    if (trimmed) return trimmed;
-  }
-  return '';
-}
+const { firstNonEmptyLine } = require('../src/notes-helpers.js');
 
 test('returns first non-empty line of body', () => {
   // When body starts with content immediately…
