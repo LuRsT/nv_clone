@@ -196,11 +196,11 @@ class NVApp {
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          this._moveSelection(1);
+          this._moveSelectionInList(1);
           break;
         case 'ArrowUp':
           e.preventDefault();
-          this._moveSelection(-1);
+          this._moveSelectionInList(-1);
           break;
         case 'Enter':
           e.preventDefault();
@@ -266,20 +266,8 @@ class NVApp {
     });
   }
 
-  _moveSelection(delta) {
-    if (this._filtered.length === 0) return;
-    this._selectedIndex = Math.max(
-      0,
-      Math.min(this._filtered.length - 1, this._selectedIndex + delta)
-    );
-    this._highlightSelected(true);
-    const items = this._resultsList.querySelectorAll('li[data-title]');
-    items[this._selectedIndex]?.scrollIntoView({ block: 'nearest' });
-  }
-
-  // Like _moveSelection but also moves DOM focus to the new item (used when
-  // the list itself has focus and the user presses arrow keys). Note loading
-  // the note is handled by the ul focusin listener once focus moves.
+  // Moves selection and shifts DOM focus to the new list item so that
+  // subsequent key events (Enter, Escape) fire on the list, not the search bar.
   _moveSelectionInList(delta) {
     if (this._filtered.length === 0) return;
     this._selectedIndex = Math.max(
