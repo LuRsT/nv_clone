@@ -1,8 +1,6 @@
 # TODO
 
 ## In Progress
-- [-] Add notes:rename IPC handler and preload binding
-- [-] Add Ctrl+R rename mode using the search bar
 
 ## To Do
 
@@ -26,3 +24,5 @@
 - [x] Add Delete and Ctrl+D shortcuts to delete selected note
 - [x] Show toast notification when a note is deleted
 - [x] Add Ctrl+W delete-word-backward for search input and editor
+- [x] Add notes:rename IPC handler and preload binding
+- [x] Add Ctrl+R rename mode using the search bar

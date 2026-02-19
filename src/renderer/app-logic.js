@@ -89,4 +89,22 @@ function deleteWordBackward(value, selectionStart, selectionEnd) {
   };
 }
 
-module.exports = { handleEnterDecision, restoreSelectionIndex, adjustFontSize, FONT_SIZE_DEFAULT, deleteWordBackward };
+/**
+ * Validates a rename operation before hitting the disk.
+ * Returns null if the rename is acceptable, or an error string to display.
+ *
+ * @param {string} newTitle
+ * @param {string} currentTitle
+ * @param {string[]} existingTitles
+ * @returns {string|null}
+ */
+function validateRename(newTitle, currentTitle, existingTitles) {
+  const trimmed = newTitle.trim();
+  if (!trimmed) return 'Title cannot be empty';
+  if (trimmed !== currentTitle && existingTitles.includes(trimmed)) {
+    return `"${trimmed}" already exists`;
+  }
+  return null;
+}
+
+module.exports = { handleEnterDecision, restoreSelectionIndex, adjustFontSize, FONT_SIZE_DEFAULT, deleteWordBackward, validateRename };

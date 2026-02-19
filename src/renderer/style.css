@@ -70,6 +70,12 @@ html, body {
   box-shadow: 0 0 0 2px var(--accent-bg);
 }
 
+#search-input.rename-mode,
+#search-input.rename-mode:focus {
+  border-color: #d97706;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+}
+
 /* Results list */
 #results-panel {
   flex-shrink: 0;

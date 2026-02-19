@@ -1,5 +1,5 @@
 // Renderer entry point — runs in Chromium, window.api injected by preload.
-// filterNotes is loaded via search.js (included before this script in index.html).
+// filterNotes, handleEnterDecision, etc. are loaded via search.js / app-logic.js.
 
 window.addEventListener('DOMContentLoaded', async () => {
   await initTheme();
@@ -66,6 +66,8 @@ class NVApp {
     this._saveTimer = null;
 
     this._previewMode = false;
+    this._renameMode = false;
+    this._savedQuery = '';
     this._resultsPanelHeight = 200; // px, user-resizable
     this._fontSize = parseInt(localStorage.getItem('app-font-size'), 10) || FONT_SIZE_DEFAULT;
   }
@@ -169,6 +171,48 @@ class NVApp {
     this._showToast(`"${deleted}" deleted`);
   }
 
+  // ── Rename mode ─────────────────────────────────────────────────────────────
+
+  _enterRenameMode() {
+    if (!this._currentTitle) return;
+    this._renameMode = true;
+    this._savedQuery = this._searchInput.value;
+    this._searchInput.value = this._currentTitle;
+    this._searchInput.placeholder = 'Rename…';
+    this._searchInput.classList.add('rename-mode');
+    this._searchInput.select();
+    this._searchInput.focus();
+  }
+
+  async _commitRename() {
+    const newTitle = this._searchInput.value.trim();
+    const error = validateRename(newTitle, this._currentTitle, this._notes.map((n) => n.title));
+    if (error) {
+      this._showToast(error);
+      return;
+    }
+
+    const oldTitle = this._currentTitle;
+    if (newTitle !== oldTitle) {
+      await window.api.renameNote(oldTitle, newTitle);
+      this._currentTitle = newTitle;
+    }
+    this._exitRenameMode(this._savedQuery);
+  }
+
+  _cancelRename() {
+    this._exitRenameMode(this._savedQuery);
+  }
+
+  _exitRenameMode(query) {
+    this._renameMode = false;
+    this._searchInput.placeholder = 'Search or create note…';
+    this._searchInput.classList.remove('rename-mode');
+    this._searchInput.value = query;
+    this._renderResults(query);
+    this._highlightSelected(false);
+  }
+
   _showToast(message) {
     if (this._toastTimer) clearTimeout(this._toastTimer);
     this._toast.textContent = message;
@@ -213,6 +257,7 @@ class NVApp {
 
   _bindEvents() {
     this._searchInput.addEventListener('input', () => {
+      if (this._renameMode) return;
       this._renderResults(this._searchInput.value);
       this._highlightSelected(true);
     });
@@ -242,7 +287,10 @@ class NVApp {
           break;
         case 'Enter':
           e.preventDefault();
-          this._handleEnter();
+          if (this._renameMode) { this._commitRename(); } else { this._handleEnter(); }
+          break;
+        case 'Escape':
+          if (this._renameMode) { e.preventDefault(); this._cancelRename(); }
           break;
         case 'Delete':
           if (e.metaKey || e.ctrlKey) {
@@ -326,6 +374,7 @@ class NVApp {
       else if (e.key === '0') { e.preventDefault(); this._changeFontSize(0); }
       else if (e.key === 'p') { e.preventDefault(); this._togglePreview(); }
       else if (e.key === 'd') { e.preventDefault(); this._deleteCurrentNote(); }
+      else if (e.key === 'r') { e.preventDefault(); this._enterRenameMode(); }
     });
   }
 

@@ -3,7 +3,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { handleEnterDecision, restoreSelectionIndex, adjustFontSize, FONT_SIZE_DEFAULT, deleteWordBackward } = require('../src/renderer/app-logic.js');
+const { handleEnterDecision, restoreSelectionIndex, adjustFontSize, FONT_SIZE_DEFAULT, deleteWordBackward, validateRename } = require('../src/renderer/app-logic.js');
 
 // ── handleEnterDecision ────────────────────────────────────────────────────────
 
@@ -185,4 +185,49 @@ test('deletes the selection when one exists', () => {
 
   // It should delete just the selection
   assert.deepEqual(result, { newValue: 'hello ', newCursor: 6 });
+});
+
+// ── validateRename ─────────────────────────────────────────────────────────────
+
+const EXISTING = ['Alpha', 'Beta', 'Gamma'];
+
+test('returns null for a valid new title', () => {
+  // When the new title is unique and non-empty…
+  const result = validateRename('Delta', 'Alpha', EXISTING);
+
+  // It should report no error
+  assert.equal(result, null);
+});
+
+test('returns null when the title is unchanged (no-op rename)', () => {
+  // When the user commits without changing the title…
+  const result = validateRename('Alpha', 'Alpha', EXISTING);
+
+  // It should be treated as valid so the UI can exit cleanly
+  assert.equal(result, null);
+});
+
+test('returns an error for an empty title', () => {
+  // When the new title is an empty string…
+  const result = validateRename('', 'Alpha', EXISTING);
+
+  // It should refuse
+  assert.ok(result);
+});
+
+test('returns an error for a whitespace-only title', () => {
+  // When the new title is only spaces…
+  const result = validateRename('   ', 'Alpha', EXISTING);
+
+  // It should refuse
+  assert.ok(result);
+});
+
+test('returns an error when the title conflicts with another note', () => {
+  // When trying to rename Alpha to Beta (which already exists)…
+  const result = validateRename('Beta', 'Alpha', EXISTING);
+
+  // It should refuse with a conflict message
+  assert.ok(result);
+  assert.match(result, /Beta/);
 });
