@@ -108,11 +108,26 @@ class NVApp {
       excerptEl.className = 'note-excerpt';
       excerptEl.textContent = note.excerpt;
 
+      li.setAttribute('tabindex', '0');
       li.appendChild(titleEl);
       li.appendChild(excerptEl);
       li.addEventListener('click', () => {
         this._selectedIndex = i;
         this._highlightSelected(true);
+      });
+      li.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this._editor.focus();
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          this._moveSelectionInList(1);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          this._moveSelectionInList(-1);
+        } else if (e.key === 'Escape') {
+          this._searchInput.focus();
+        }
       });
       this._resultsList.appendChild(li);
     });
@@ -246,6 +261,14 @@ class NVApp {
     this._highlightSelected(true);
     const items = this._resultsList.querySelectorAll('li[data-title]');
     items[this._selectedIndex]?.scrollIntoView({ block: 'nearest' });
+  }
+
+  // Like _moveSelection but also moves DOM focus to the new item (used when
+  // the list itself has focus and the user presses arrow keys).
+  _moveSelectionInList(delta) {
+    this._moveSelection(delta);
+    const items = this._resultsList.querySelectorAll('li[data-title]');
+    items[this._selectedIndex]?.focus();
   }
 
   async _handleEnter() {
