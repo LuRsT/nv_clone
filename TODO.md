@@ -20,3 +20,4 @@
 - [x] Extract firstNonEmptyLine to notes-helpers module so tests import real code
 - [x] Extract handleEnterDecision and restoreSelectionIndex to app-logic module with tests
 - [x] Add Ctrl++/- font size adjustment with persistence
+- [x] Add Ctrl+P markdown preview toggle

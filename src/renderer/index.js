@@ -54,6 +54,7 @@ class NVApp {
     this._searchInput = document.getElementById('search-input');
     this._resultsList = document.getElementById('results-list');
     this._editor = document.getElementById('editor');
+    this._preview = document.getElementById('preview');
     this._resizeHandle = document.getElementById('resize-handle');
     this._resultsPanel = document.getElementById('results-panel');
 
@@ -63,6 +64,7 @@ class NVApp {
     this._currentTitle = null;  // title of note loaded in editor
     this._saveTimer = null;
 
+    this._previewMode = false;
     this._resultsPanelHeight = 200; // px, user-resizable
     this._fontSize = parseInt(localStorage.getItem('app-font-size'), 10) || FONT_SIZE_DEFAULT;
   }
@@ -141,6 +143,7 @@ class NVApp {
     this._currentTitle = title;
     const body = await window.api.readNote(title);
     this._editor.value = body;
+    if (this._previewMode) this._renderPreview();
   }
 
   async _createNote(title) {
@@ -275,12 +278,13 @@ class NVApp {
       this._highlightSelected(true);
     });
 
-    // Global font-size shortcuts — active regardless of which panel has focus.
+    // Global shortcuts — active regardless of which panel has focus.
     window.addEventListener('keydown', (e) => {
       if (!e.ctrlKey && !e.metaKey) return;
       if (e.key === '+' || e.key === '=') { e.preventDefault(); this._changeFontSize(1); }
       else if (e.key === '-') { e.preventDefault(); this._changeFontSize(-1); }
       else if (e.key === '0') { e.preventDefault(); this._changeFontSize(0); }
+      else if (e.key === 'p') { e.preventDefault(); this._togglePreview(); }
     });
   }
 
@@ -347,6 +351,21 @@ class NVApp {
   _applyResultsPanelHeight() {
     this._resultsPanel.style.height = `${this._resultsPanelHeight}px`;
     this._resultsPanel.style.maxHeight = `${this._resultsPanelHeight}px`;
+  }
+
+  _togglePreview() {
+    this._previewMode = !this._previewMode;
+    this._editor.hidden = this._previewMode;
+    this._preview.hidden = !this._previewMode;
+    if (this._previewMode) {
+      this._renderPreview();
+    } else {
+      this._editor.focus();
+    }
+  }
+
+  _renderPreview() {
+    this._preview.innerHTML = marked.parse(this._editor.value || '');
   }
 
   _applyFontSize() {

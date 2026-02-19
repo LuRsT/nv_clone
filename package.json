@@ -11,7 +11,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "chokidar": "^3.6.0"
+    "chokidar": "^3.6.0",
+    "marked": "^17.0.3"
   },
   "devDependencies": {
     "electron": "^40.6.0"
