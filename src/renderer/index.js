@@ -55,6 +55,7 @@ class NVApp {
     this._resultsList = document.getElementById('results-list');
     this._editor = document.getElementById('editor');
     this._preview = document.getElementById('preview');
+    this._toast = document.getElementById('toast');
     this._resizeHandle = document.getElementById('resize-handle');
     this._resultsPanel = document.getElementById('results-panel');
 
@@ -159,11 +160,26 @@ class NVApp {
 
   async _deleteCurrentNote() {
     if (!this._currentTitle) return;
-    await window.api.deleteNote(this._currentTitle);
+    const deleted = this._currentTitle;
+    await window.api.deleteNote(deleted);
     this._currentTitle = null;
     this._editor.value = '';
     await this._loadNotes();
     this._searchInput.focus();
+    this._showToast(`"${deleted}" deleted`);
+  }
+
+  _showToast(message) {
+    if (this._toastTimer) clearTimeout(this._toastTimer);
+    this._toast.textContent = message;
+    this._toast.hidden = false;
+    // Force reflow so the transition fires even on rapid successive calls.
+    this._toast.getBoundingClientRect();
+    this._toast.classList.add('visible');
+    this._toastTimer = setTimeout(() => {
+      this._toast.classList.remove('visible');
+      this._toastTimer = setTimeout(() => { this._toast.hidden = true; }, 150);
+    }, 2000);
   }
 
   // ── Autosave ──────────────────────────────────────────────────────────────

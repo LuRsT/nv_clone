@@ -222,6 +222,28 @@ html, body {
   margin: 1em 0;
 }
 
+/* Toast notification */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--bg);
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-size: 0.86em;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 200;
+}
+
+#toast.visible {
+  opacity: 1;
+}
+
 /* Vault picker overlay */
 #vault-overlay {
   position: fixed;
