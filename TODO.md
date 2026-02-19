@@ -17,3 +17,5 @@
 - [x] Implement editor autosave with 500ms debounce
 - [x] Implement OS theming via nativeTheme (light/dark CSS variables)
 - [x] Set up application menu (File: Change Vault/Quit, Edit: standard, View: DevTools)
+- [x] Extract firstNonEmptyLine to notes-helpers module so tests import real code
+- [x] Extract handleEnterDecision and restoreSelectionIndex to app-logic module with tests

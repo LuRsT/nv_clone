@@ -114,11 +114,7 @@ class NVApp {
       this._resultsList.appendChild(li);
     });
 
-    // Restore selection: try to keep current note selected, otherwise pick first
-    const idx = this._currentTitle
-      ? this._filtered.findIndex((n) => n.title === this._currentTitle)
-      : 0;
-    this._selectedIndex = idx >= 0 ? idx : 0;
+    this._selectedIndex = restoreSelectionIndex(this._filtered, this._currentTitle);
     this._highlightSelected(false);
   }
 
@@ -202,6 +198,12 @@ class NVApp {
           e.preventDefault();
           this._moveSelectionInList(-1);
           break;
+        case 'j':
+          if (e.ctrlKey) { e.preventDefault(); this._moveSelectionInList(1); }
+          break;
+        case 'k':
+          if (e.ctrlKey) { e.preventDefault(); this._moveSelectionInList(-1); }
+          break;
         case 'Enter':
           e.preventDefault();
           this._handleEnter();
@@ -217,7 +219,13 @@ class NVApp {
 
     this._editor.addEventListener('input', () => this._scheduleAutosave());
     this._editor.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
+      if (e.ctrlKey && e.key === 'j') {
+        e.preventDefault();
+        this._moveSelectionInList(1);
+      } else if (e.ctrlKey && e.key === 'k') {
+        e.preventDefault();
+        this._moveSelectionInList(-1);
+      } else if (e.key === 'Escape') {
         this._cancelSave();
         this._save();
         this._searchInput.focus();
@@ -248,10 +256,10 @@ class NVApp {
       if (e.key === 'Enter') {
         e.preventDefault();
         this._editor.focus();
-      } else if (e.key === 'ArrowDown') {
+      } else if (e.key === 'ArrowDown' || (e.ctrlKey && e.key === 'j')) {
         e.preventDefault();
         this._moveSelectionInList(1);
-      } else if (e.key === 'ArrowUp') {
+      } else if (e.key === 'ArrowUp' || (e.ctrlKey && e.key === 'k')) {
         e.preventDefault();
         this._moveSelectionInList(-1);
       } else if (e.key === 'Escape') {
@@ -282,21 +290,19 @@ class NVApp {
   }
 
   async _handleEnter() {
-    const query = this._searchInput.value.trim();
-    if (!query) return;
+    const decision = handleEnterDecision(
+      this._filtered,
+      this._selectedIndex,
+      this._searchInput.value,
+    );
+    if (!decision) return;
 
-    // Results exist → open the selected (or first) result. Never create when
-    // notes are showing; that would require deliberately clearing the search.
-    if (this._filtered.length > 0) {
-      const idx = this._selectedIndex >= 0 ? this._selectedIndex : 0;
-      const note = this._filtered[idx];
-      await this._openNote(note.title);
+    if (decision.action === 'open') {
+      await this._openNote(decision.title);
       this._editor.focus();
-      return;
+    } else {
+      await this._createNote(decision.title);
     }
-
-    // Empty list → no match at all → create a new note named after the query.
-    await this._createNote(query);
   }
 
   // ── Resize handle ─────────────────────────────────────────────────────────

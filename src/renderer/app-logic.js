@@ -1,0 +1,45 @@
+// Pure renderer logic — no DOM, no window.api, no side effects.
+
+/**
+ * Decides what to do when Enter is pressed in the search bar.
+ * Returns {action: 'open', title} when results exist, {action: 'create', title}
+ * when the list is empty, or null when the query is blank.
+ *
+ * @param {Array<{title: string}>} filteredNotes
+ * @param {number} selectedIndex
+ * @param {string} query
+ * @returns {{action: string, title: string}|null}
+ */
+function handleEnterDecision(filteredNotes, selectedIndex, query) {
+  const q = query.trim();
+  if (!q) return null;
+
+  if (filteredNotes.length > 0) {
+    const idx = selectedIndex >= 0 ? selectedIndex : 0;
+    return { action: 'open', title: filteredNotes[idx].title };
+  }
+
+  return { action: 'create', title: q };
+}
+
+/**
+ * After the results list is re-rendered, returns the index that should be
+ * selected. Tries to keep the currently open note highlighted; falls back to
+ * the first item. Returns -1 when the list is empty.
+ *
+ * @param {Array<{title: string}>} filteredNotes
+ * @param {string|null} currentTitle
+ * @returns {number}
+ */
+function restoreSelectionIndex(filteredNotes, currentTitle) {
+  if (filteredNotes.length === 0) return -1;
+
+  if (currentTitle) {
+    const idx = filteredNotes.findIndex((n) => n.title === currentTitle);
+    if (idx >= 0) return idx;
+  }
+
+  return 0;
+}
+
+module.exports = { handleEnterDecision, restoreSelectionIndex };
