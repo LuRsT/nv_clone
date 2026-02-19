@@ -154,6 +154,7 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-mono);
+  font-size: 1em;
   line-height: 1.6;
   tab-size: 2;
 }
