@@ -1,6 +1,8 @@
 # TODO
 
 ## In Progress
+- [-] Add notes:rename IPC handler and preload binding
+- [-] Add Ctrl+R rename mode using the search bar
 
 ## To Do
 

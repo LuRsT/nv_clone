@@ -124,6 +124,11 @@ ipcMain.handle('notes:write', (_event, title, body) => {
   fs.writeFileSync(_notePath(title), body, 'utf8');
 });
 
+ipcMain.handle('notes:rename', (_event, oldTitle, newTitle) => {
+  if (!_vaultPath) return;
+  fs.renameSync(_notePath(oldTitle), _notePath(newTitle));
+});
+
 ipcMain.handle('notes:delete', (_event, title) => {
   if (!_vaultPath) return;
   try {

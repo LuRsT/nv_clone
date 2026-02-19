@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('api', {
   readNote: (title) => ipcRenderer.invoke('notes:read', title),
   writeNote: (title, body) => ipcRenderer.invoke('notes:write', title, body),
   deleteNote: (title) => ipcRenderer.invoke('notes:delete', title),
+  renameNote: (oldTitle, newTitle) => ipcRenderer.invoke('notes:rename', oldTitle, newTitle),
 
   // File watcher push events
   onNotesChanged: (callback) => {
