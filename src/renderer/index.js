@@ -269,6 +269,9 @@ class NVApp {
         this._moveSelectionInList(-1);
       } else if (e.key === 'Escape') {
         this._searchInput.focus();
+      } else if (e.key === 'Delete') {
+        e.preventDefault();
+        this._deleteCurrentNote();
       }
     });
 
@@ -285,6 +288,7 @@ class NVApp {
       else if (e.key === '-') { e.preventDefault(); this._changeFontSize(-1); }
       else if (e.key === '0') { e.preventDefault(); this._changeFontSize(0); }
       else if (e.key === 'p') { e.preventDefault(); this._togglePreview(); }
+      else if (e.key === 'd') { e.preventDefault(); this._deleteCurrentNote(); }
     });
   }
 
