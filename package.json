@@ -1,0 +1,19 @@
+{
+  "name": "nv",
+  "version": "1.0.0",
+  "description": "A keyboard-first Notational Velocity clone for plain-text markdown notes",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/**/*.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^3.6.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

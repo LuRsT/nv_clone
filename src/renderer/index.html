@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NV</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <div id="search-panel">
+      <input
+        id="search-input"
+        type="text"
+        placeholder="Search or create note…"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
+    <div id="results-panel">
+      <ul id="results-list"></ul>
+    </div>
+    <div id="resize-handle"></div>
+    <div id="editor-panel">
+      <textarea id="editor" spellcheck="false" placeholder="Note body…"></textarea>
+    </div>
+  </div>
+  <script src="search.js"></script>
+  <script src="index.js"></script>
+</body>
+</html>
