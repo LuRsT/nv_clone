@@ -64,7 +64,7 @@ class NVApp {
     this._saveTimer = null;
 
     this._resultsPanelHeight = 200; // px, user-resizable
-    this._fontSize = parseInt(localStorage.getItem('editor-font-size'), 10) || FONT_SIZE_DEFAULT;
+    this._fontSize = parseInt(localStorage.getItem('app-font-size'), 10) || FONT_SIZE_DEFAULT;
   }
 
   async init() {
@@ -350,12 +350,12 @@ class NVApp {
   }
 
   _applyFontSize() {
-    document.documentElement.style.setProperty('--editor-font-size', `${this._fontSize}px`);
+    document.documentElement.style.setProperty('--app-font-size', `${this._fontSize}px`);
   }
 
   _changeFontSize(delta) {
     this._fontSize = adjustFontSize(this._fontSize, delta);
-    localStorage.setItem('editor-font-size', this._fontSize);
+    localStorage.setItem('app-font-size', this._fontSize);
     this._applyFontSize();
   }
 }
