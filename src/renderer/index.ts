@@ -384,7 +384,11 @@ class NVApp {
     if (!decision) return;
 
     if (decision.action === 'open') {
+      this._searchInput.value = '';
+      this._renderResults('');
       await this._openNote(decision.title);
+      this._selectedIndex = this._filtered.findIndex((n) => n.title === decision.title);
+      this._highlightSelected(false);
       this._editor.focus();
     } else {
       await this._createNote(decision.title);
