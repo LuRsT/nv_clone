@@ -11,32 +11,45 @@ import {
   validateRename,
 } from './app-logic'
 import type { NoteInfo } from './window'
+import type { NoteRepository, VaultService, ThemeService } from './ports'
+import { IpcNoteRepository, IpcVaultService, IpcThemeService } from './adapters/ipc-adapter'
+
+export interface AppPorts {
+  notes: NoteRepository;
+  vault: VaultService;
+  theme: ThemeService;
+}
 
 window.addEventListener('DOMContentLoaded', async () => {
-  await initTheme();
-  await initVault();
+  const ports: AppPorts = {
+    notes: new IpcNoteRepository(),
+    vault: new IpcVaultService(),
+    theme: new IpcThemeService(),
+  };
+  await initTheme(ports.theme);
+  await initVault(ports);
 });
 
-async function initTheme(): Promise<void> {
-  const dark = await window.api.isDarkMode();
+async function initTheme(theme: ThemeService): Promise<void> {
+  const dark = await theme.isDark();
   applyTheme(dark);
-  window.api.onThemeChanged((isDark) => applyTheme(isDark));
+  theme.onChanged((isDark) => applyTheme(isDark));
 }
 
 function applyTheme(isDark: boolean): void {
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
 }
 
-async function initVault(): Promise<void> {
-  const vaultPath = await window.api.getVaultPath();
+async function initVault(ports: AppPorts): Promise<void> {
+  const vaultPath = await ports.vault.getPath();
   if (!vaultPath) {
-    await promptVaultSelection();
+    await promptVaultSelection(ports);
   } else {
-    startApp();
+    startApp(ports);
   }
 }
 
-async function promptVaultSelection(): Promise<void> {
+async function promptVaultSelection(ports: AppPorts): Promise<void> {
   const overlay = document.createElement('div');
   overlay.id = 'vault-overlay';
   overlay.innerHTML = `
@@ -47,16 +60,16 @@ async function promptVaultSelection(): Promise<void> {
   document.body.appendChild(overlay);
 
   document.getElementById('vault-pick-btn')!.addEventListener('click', async () => {
-    const chosen = await window.api.selectVault();
+    const chosen = await ports.vault.select();
     if (chosen) {
       overlay.remove();
-      startApp();
+      startApp(ports);
     }
   });
 }
 
-function startApp(): void {
-  const app = new NVApp();
+function startApp(ports: AppPorts): void {
+  const app = new NVApp(ports);
   app.init();
 }
 
@@ -82,7 +95,10 @@ class NVApp {
   private _resultsPanelHeight = 200;
   private _fontSize: number;
 
-  constructor() {
+  private _ports: AppPorts;
+
+  constructor(ports: AppPorts) {
+    this._ports = ports;
     this._searchInput = document.getElementById('search-input') as HTMLInputElement;
     this._resultsList = document.getElementById('results-list') as HTMLUListElement;
     this._editor = document.getElementById('editor') as HTMLTextAreaElement;
@@ -106,7 +122,7 @@ class NVApp {
   // ── Data ──────────────────────────────────────────────────────────────────
 
   private async _loadNotes(): Promise<void> {
-    this._notes = await window.api.listNotes();
+    this._notes = await this._ports.notes.list();
     this._renderResults(this._searchInput.value);
   }
 
@@ -166,13 +182,13 @@ class NVApp {
     if (this._currentTitle === title) return;
     this._cancelSave();
     this._currentTitle = title;
-    const body = await window.api.readNote(title);
+    const body = await this._ports.notes.read(title);
     this._editor.value = body;
     if (this._previewMode) this._renderPreview();
   }
 
   private async _createNote(title: string): Promise<void> {
-    await window.api.writeNote(title, '');
+    await this._ports.notes.write(title, '');
     await this._loadNotes();
     const idx = this._filtered.findIndex((n) => n.title === title);
     if (idx >= 0) this._selectedIndex = idx;
@@ -185,7 +201,7 @@ class NVApp {
   private async _deleteCurrentNote(): Promise<void> {
     if (!this._currentTitle) return;
     const deleted = this._currentTitle;
-    await window.api.deleteNote(deleted);
+    await this._ports.notes.delete(deleted);
     this._currentTitle = null;
     this._editor.value = '';
     await this._loadNotes();
@@ -216,7 +232,7 @@ class NVApp {
 
     const oldTitle = this._currentTitle!;
     if (newTitle !== oldTitle) {
-      await window.api.renameNote(oldTitle, newTitle);
+      await this._ports.notes.rename(oldTitle, newTitle);
       this._currentTitle = newTitle;
     }
     this._exitRenameMode(this._savedQuery);
@@ -264,7 +280,7 @@ class NVApp {
 
   private async _save(): Promise<void> {
     if (!this._currentTitle) return;
-    await window.api.writeNote(this._currentTitle, this._editor.value);
+    await this._ports.notes.write(this._currentTitle, this._editor.value);
   }
 
   // ── Event wiring ──────────────────────────────────────────────────────────
@@ -379,7 +395,7 @@ class NVApp {
       }
     });
 
-    window.api.onNotesChanged((notes) => {
+    this._ports.notes.onChanged((notes) => {
       this._notes = notes;
       this._renderResults(this._searchInput.value);
       this._highlightSelected(true);

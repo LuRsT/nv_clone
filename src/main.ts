@@ -9,8 +9,7 @@ import {
 import path from 'path';
 import fs from 'fs';
 import chokidar from 'chokidar';
-import { firstNonEmptyLine as _firstNonEmptyLine } from './notes-helpers';
-import type { NoteInfo } from './renderer/window';
+import { FsNoteStore } from './adapters/fs-note-store';
 
 // ── Vault config persistence ──────────────────────────────────────────────────
 
@@ -30,42 +29,17 @@ function _writeConfig(data: Record<string, string>): void {
 }
 
 let _vaultPath: string | null = _readConfig().vaultPath || null;
+let _noteStore: FsNoteStore | null = _vaultPath ? new FsNoteStore(_vaultPath) : null;
 let _watcher: ReturnType<typeof chokidar.watch> | null = null;
 let _mainWindow: BrowserWindow | null = null;
 
-// ── Notes helpers ─────────────────────────────────────────────────────────────
-
-function _notePath(title: string): string {
-  return path.join(_vaultPath!, `${title}.md`);
-}
-
-function _listNotes(): NoteInfo[] {
-  if (!_vaultPath) return [];
-
-  let files: string[];
-  try {
-    files = fs.readdirSync(_vaultPath);
-  } catch {
-    return [];
+function _setVault(vaultPath: string): void {
+  _vaultPath = vaultPath;
+  if (_noteStore) {
+    _noteStore.vaultPath = vaultPath;
+  } else {
+    _noteStore = new FsNoteStore(vaultPath);
   }
-
-  return files
-    .filter((f) => f.endsWith('.md') && !f.startsWith('.'))
-    .map((f) => {
-      const title = f.slice(0, -3);
-      const filePath = path.join(_vaultPath!, f);
-      let stat: fs.Stats, body: string;
-      try {
-        stat = fs.statSync(filePath);
-        body = fs.readFileSync(filePath, 'utf8');
-      } catch {
-        return null;
-      }
-      const excerpt = _firstNonEmptyLine(body);
-      return { title, excerpt, mtime: stat.mtimeMs };
-    })
-    .filter((n): n is NoteInfo => n !== null)
-    .sort((a, b) => b.mtime - a.mtime);
 }
 
 // ── File watcher ──────────────────────────────────────────────────────────────
@@ -83,8 +57,8 @@ function _startWatcher(): void {
   });
 
   const _push = () => {
-    if (_mainWindow && !_mainWindow.isDestroyed()) {
-      _mainWindow.webContents.send('notes:changed', _listNotes());
+    if (_mainWindow && !_mainWindow.isDestroyed() && _noteStore) {
+      _mainWindow.webContents.send('notes:changed', _noteStore.list());
     }
   };
 
@@ -104,39 +78,28 @@ ipcMain.handle('vault:select', async () => {
   });
   if (result.canceled || result.filePaths.length === 0) return null;
 
-  _vaultPath = result.filePaths[0];
-  _writeConfig({ vaultPath: _vaultPath });
+  _setVault(result.filePaths[0]);
+  _writeConfig({ vaultPath: _vaultPath! });
   _startWatcher();
   return _vaultPath;
 });
 
-ipcMain.handle('notes:list', () => _listNotes());
+ipcMain.handle('notes:list', () => _noteStore?.list() ?? []);
 
 ipcMain.handle('notes:read', (_event, title: string) => {
-  try {
-    return fs.readFileSync(_notePath(title), 'utf8');
-  } catch {
-    return '';
-  }
+  return _noteStore?.read(title) ?? '';
 });
 
 ipcMain.handle('notes:write', (_event, title: string, body: string) => {
-  if (!_vaultPath) return;
-  fs.writeFileSync(_notePath(title), body, 'utf8');
+  _noteStore?.write(title, body);
 });
 
 ipcMain.handle('notes:rename', (_event, oldTitle: string, newTitle: string) => {
-  if (!_vaultPath) return;
-  fs.renameSync(_notePath(oldTitle), _notePath(newTitle));
+  _noteStore?.rename(oldTitle, newTitle);
 });
 
 ipcMain.handle('notes:delete', (_event, title: string) => {
-  if (!_vaultPath) return;
-  try {
-    fs.unlinkSync(_notePath(title));
-  } catch {
-    // already gone
-  }
+  _noteStore?.delete(title);
 });
 
 ipcMain.handle('theme:isDark', () => nativeTheme.shouldUseDarkColors);
@@ -159,10 +122,10 @@ function _buildMenu(): void {
               properties: ['openDirectory', 'createDirectory'],
             });
             if (!result.canceled && result.filePaths.length > 0) {
-              _vaultPath = result.filePaths[0];
-              _writeConfig({ vaultPath: _vaultPath });
+              _setVault(result.filePaths[0]);
+              _writeConfig({ vaultPath: _vaultPath! });
               _startWatcher();
-              _mainWindow!.webContents.send('notes:changed', _listNotes());
+              _mainWindow!.webContents.send('notes:changed', _noteStore!.list());
             }
           },
         },
