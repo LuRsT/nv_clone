@@ -1,7 +1,5 @@
 // Renderer entry point — runs in Chromium, window.api injected by preload.
 
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
 import { filterNotes } from './search'
 import {
   handleEnterDecision,
@@ -16,6 +14,7 @@ import { ToastController } from './controllers/toast-controller'
 import { AutosaveController } from './controllers/autosave-controller'
 import { ResizeController } from './controllers/resize-controller'
 import { FontSizeController } from './controllers/font-size-controller'
+import { PreviewController } from './controllers/preview-controller'
 
 export interface AppPorts {
   notes: NoteRepository;
@@ -80,14 +79,12 @@ class NVApp {
   private _searchInput: HTMLInputElement;
   private _resultsList: HTMLUListElement;
   private _editor: HTMLTextAreaElement;
-  private _preview: HTMLDivElement;
 
   private _notes: NoteInfo[] = [];
   private _filtered: NoteInfo[] = [];
   private _selectedIndex = -1;
   private _currentTitle: string | null = null;
 
-  private _previewMode = false;
   private _renameMode = false;
   private _savedQuery = '';
 
@@ -95,6 +92,7 @@ class NVApp {
   private _autosave: AutosaveController;
   private _resize: ResizeController;
   private _fontSize: FontSizeController;
+  private _preview: PreviewController;
   private _ports: AppPorts;
 
   constructor(ports: AppPorts) {
@@ -102,7 +100,6 @@ class NVApp {
     this._searchInput = document.getElementById('search-input') as HTMLInputElement;
     this._resultsList = document.getElementById('results-list') as HTMLUListElement;
     this._editor = document.getElementById('editor') as HTMLTextAreaElement;
-    this._preview = document.getElementById('preview') as HTMLDivElement;
     this._toast = new ToastController(document.getElementById('toast') as HTMLDivElement);
     this._autosave = new AutosaveController(ports.notes, this._toast);
     this._resize = new ResizeController(
@@ -110,6 +107,10 @@ class NVApp {
       document.getElementById('results-panel') as HTMLDivElement,
     );
     this._fontSize = new FontSizeController();
+    this._preview = new PreviewController(
+      this._editor,
+      document.getElementById('preview') as HTMLDivElement,
+    );
   }
 
   async init(): Promise<void> {
@@ -185,7 +186,7 @@ class NVApp {
     this._currentTitle = title;
     const body = await this._ports.notes.read(title);
     this._editor.value = body;
-    if (this._previewMode) this._renderPreview();
+    if (this._preview.isActive) this._preview.render();
   }
 
   private async _createNote(title: string): Promise<void> {
@@ -389,7 +390,7 @@ class NVApp {
       if (e.key === '+' || e.key === '=') { e.preventDefault(); this._fontSize.change(1); }
       else if (e.key === '-') { e.preventDefault(); this._fontSize.change(-1); }
       else if (e.key === '0') { e.preventDefault(); this._fontSize.change(0); }
-      else if (e.key === 'p') { e.preventDefault(); this._togglePreview(); }
+      else if (e.key === 'p') { e.preventDefault(); this._preview.toggle(); }
       else if (e.key === 'd') { e.preventDefault(); this._deleteCurrentNote(); }
       else if (e.key === 'r') { e.preventDefault(); this._enterRenameMode(); }
     });
@@ -422,21 +423,6 @@ class NVApp {
     } else {
       await this._createNote(decision.title);
     }
-  }
-
-  private _togglePreview(): void {
-    this._previewMode = !this._previewMode;
-    this._editor.hidden = this._previewMode;
-    this._preview.hidden = !this._previewMode;
-    if (this._previewMode) {
-      this._renderPreview();
-    } else {
-      this._editor.focus();
-    }
-  }
-
-  private _renderPreview(): void {
-    this._preview.innerHTML = DOMPurify.sanitize(marked.parse(this._editor.value || '') as string);
   }
 
 }
