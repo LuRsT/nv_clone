@@ -266,11 +266,15 @@ class NVApp {
           if (this._rename.isActive) { this._handleRenameCommit(); } else { this._handleEnter(); }
           break;
         case 'Escape':
+          e.preventDefault();
           if (this._rename.isActive) {
-            e.preventDefault();
             this._rename.cancel(this._searchInput);
             this._renderResults(this._rename.savedQuery);
             this._highlightSelected(false);
+          } else if (this._searchInput.value) {
+            this._searchInput.value = '';
+            this._renderResults('');
+            this._highlightSelected(true);
           }
           break;
       }
