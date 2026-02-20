@@ -5,6 +5,7 @@
 ## To Do
 
 ## Done
+- [x] Add word count status line to editor
 - [x] Add search highlight in results (title + excerpt)
 - [x] Escape in search bar clears the query
 - [x] Clear search bar after note creation
