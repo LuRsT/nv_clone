@@ -1,15 +1,20 @@
 const PANEL_HEIGHT_MIN = 60;
 const PANEL_HEIGHT_MAX = 500;
 const PANEL_HEIGHT_DEFAULT = 200;
+const STORAGE_KEY = 'panel-height';
 
 export class ResizeController {
   private _resizeHandle: HTMLDivElement;
   private _resultsPanel: HTMLDivElement;
-  private _resultsPanelHeight = PANEL_HEIGHT_DEFAULT;
+  private _resultsPanelHeight: number;
 
   constructor(resizeHandle: HTMLDivElement, resultsPanel: HTMLDivElement) {
     this._resizeHandle = resizeHandle;
     this._resultsPanel = resultsPanel;
+    const saved = parseInt(localStorage.getItem(STORAGE_KEY) ?? '', 10);
+    this._resultsPanelHeight = (saved >= PANEL_HEIGHT_MIN && saved <= PANEL_HEIGHT_MAX)
+      ? saved
+      : PANEL_HEIGHT_DEFAULT;
   }
 
   bind(): void {
@@ -29,6 +34,7 @@ export class ResizeController {
 
       const onUp = () => {
         this._resizeHandle.classList.remove('dragging');
+        localStorage.setItem(STORAGE_KEY, String(this._resultsPanelHeight));
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
       };
