@@ -261,12 +261,6 @@ class NVApp {
           e.preventDefault();
           this._moveSelectionInList(-1);
           break;
-        case 'j':
-          if (e.ctrlKey) { e.preventDefault(); this._moveSelectionInList(1); }
-          break;
-        case 'k':
-          if (e.ctrlKey) { e.preventDefault(); this._moveSelectionInList(-1); }
-          break;
         case 'Enter':
           e.preventDefault();
           if (this._rename.isActive) { this._handleRenameCommit(); } else { this._handleEnter(); }
@@ -277,12 +271,6 @@ class NVApp {
             this._rename.cancel(this._searchInput);
             this._renderResults(this._rename.savedQuery);
             this._highlightSelected(false);
-          }
-          break;
-        case 'Delete':
-          if (e.metaKey || e.ctrlKey) {
-            e.preventDefault();
-            this._deleteCurrentNote();
           }
           break;
       }
@@ -296,20 +284,11 @@ class NVApp {
         this._autosave.schedule(this._currentTitle!, () => this._editor.value);
         return;
       }
-      if (e.ctrlKey && e.key === 'j') {
-        e.preventDefault();
-        this._moveSelectionInList(1);
-      } else if (e.ctrlKey && e.key === 'k') {
-        e.preventDefault();
-        this._moveSelectionInList(-1);
-      } else if (e.key === 'Escape') {
+      if (e.key === 'Escape') {
         this._autosave.cancelAndFlush(this._currentTitle!, () => this._editor.value);
         this._searchInput.focus();
         const len = this._searchInput.value.length;
         this._searchInput.setSelectionRange(len, len);
-      } else if (e.key === 'Delete' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        this._deleteCurrentNote();
       }
     });
 
@@ -329,10 +308,10 @@ class NVApp {
       if (e.key === 'Enter') {
         e.preventDefault();
         this._editor.focus();
-      } else if (e.key === 'ArrowDown' || (e.ctrlKey && e.key === 'j')) {
+      } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         this._moveSelectionInList(1);
-      } else if (e.key === 'ArrowUp' || (e.ctrlKey && e.key === 'k')) {
+      } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         this._moveSelectionInList(-1);
       } else if (e.key === 'Escape') {
@@ -351,7 +330,10 @@ class NVApp {
 
     window.addEventListener('keydown', (e) => {
       if (!e.ctrlKey && !e.metaKey) return;
-      if (e.key === '+' || e.key === '=') { e.preventDefault(); this._fontSize.change(1); }
+      if (e.key === 'j') { e.preventDefault(); this._moveSelectionInList(1); }
+      else if (e.key === 'k') { e.preventDefault(); this._moveSelectionInList(-1); }
+      else if (e.key === 'Delete') { e.preventDefault(); this._deleteCurrentNote(); }
+      else if (e.key === '+' || e.key === '=') { e.preventDefault(); this._fontSize.change(1); }
       else if (e.key === '-') { e.preventDefault(); this._fontSize.change(-1); }
       else if (e.key === '0') { e.preventDefault(); this._fontSize.change(0); }
       else if (e.key === 'p') { e.preventDefault(); this._preview.toggle(); }
