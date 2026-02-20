@@ -27,12 +27,10 @@ esbuild.buildSync({
   outfile: 'dist/renderer/bundle.js',
 })
 
-// Copy static assets
+// Copy static assets — replace dev script tags with single bundle reference
 fs.mkdirSync('dist/renderer', { recursive: true })
-let html = fs.readFileSync('src/renderer/index.html', 'utf8')
-html = html.replace(/<script src=".*marked.*"><\/script>\n/, '')
-           .replace(/<script src="search.js"><\/script>\n/, '')
-           .replace(/<script src="app-logic.js"><\/script>\n/, '')
-           .replace('<script src="index.js"></script>', '<script src="bundle.js"></script>')
-fs.writeFileSync('dist/renderer/index.html', html)
+const html = fs.readFileSync('src/renderer/index.html', 'utf8')
+const beforeScripts = html.slice(0, html.indexOf('<script'))
+const prodHtml = beforeScripts + '<script src="bundle.js"></script>\n</body>\n</html>\n'
+fs.writeFileSync('dist/renderer/index.html', prodHtml)
 fs.copyFileSync('src/renderer/style.css', 'dist/renderer/style.css')
