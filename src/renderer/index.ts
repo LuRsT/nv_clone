@@ -5,7 +5,6 @@ import {
   handleEnterDecision,
   restoreSelectionIndex,
   deleteWordBackward,
-  validateRename,
 } from './app-logic'
 import type { NoteInfo } from './window'
 import type { NoteRepository, VaultService, ThemeService } from './ports'
@@ -15,6 +14,7 @@ import { AutosaveController } from './controllers/autosave-controller'
 import { ResizeController } from './controllers/resize-controller'
 import { FontSizeController } from './controllers/font-size-controller'
 import { PreviewController } from './controllers/preview-controller'
+import { RenameController } from './controllers/rename-controller'
 
 export interface AppPorts {
   notes: NoteRepository;
@@ -85,14 +85,12 @@ class NVApp {
   private _selectedIndex = -1;
   private _currentTitle: string | null = null;
 
-  private _renameMode = false;
-  private _savedQuery = '';
-
   private _toast: ToastController;
   private _autosave: AutosaveController;
   private _resize: ResizeController;
   private _fontSize: FontSizeController;
   private _preview: PreviewController;
+  private _rename: RenameController;
   private _ports: AppPorts;
 
   constructor(ports: AppPorts) {
@@ -111,6 +109,7 @@ class NVApp {
       this._editor,
       document.getElementById('preview') as HTMLDivElement,
     );
+    this._rename = new RenameController(ports.notes, this._toast);
   }
 
   async init(): Promise<void> {
@@ -221,53 +220,6 @@ class NVApp {
     this._toast.show(`"${deleted}" deleted`);
   }
 
-  // ── Rename mode ─────────────────────────────────────────────────────────────
-
-  private _enterRenameMode(): void {
-    if (!this._currentTitle) return;
-    this._renameMode = true;
-    this._savedQuery = this._searchInput.value;
-    this._searchInput.value = this._currentTitle;
-    this._searchInput.placeholder = 'Rename…';
-    this._searchInput.classList.add('rename-mode');
-    this._searchInput.select();
-    this._searchInput.focus();
-  }
-
-  private async _commitRename(): Promise<void> {
-    const newTitle = this._searchInput.value.trim();
-    const error = validateRename(newTitle, this._currentTitle!, this._notes.map((n) => n.title));
-    if (error) {
-      this._toast.show(error);
-      return;
-    }
-
-    const oldTitle = this._currentTitle!;
-    if (newTitle !== oldTitle) {
-      try {
-        await this._ports.notes.rename(oldTitle, newTitle);
-      } catch (err) {
-        this._toast.show(`Failed to rename: ${(err as Error).message}`);
-        return;
-      }
-      this._currentTitle = newTitle;
-    }
-    this._exitRenameMode(this._savedQuery);
-  }
-
-  private _cancelRename(): void {
-    this._exitRenameMode(this._savedQuery);
-  }
-
-  private _exitRenameMode(query: string): void {
-    this._renameMode = false;
-    this._searchInput.placeholder = 'Search or create note…';
-    this._searchInput.classList.remove('rename-mode');
-    this._searchInput.value = query;
-    this._renderResults(query);
-    this._highlightSelected(false);
-  }
-
   // ── Event wiring ──────────────────────────────────────────────────────────
 
   private _applyWordBackspace(el: HTMLInputElement | HTMLTextAreaElement): void {
@@ -280,7 +232,7 @@ class NVApp {
 
   private _bindEvents(): void {
     this._searchInput.addEventListener('input', () => {
-      if (this._renameMode) return;
+      if (this._rename.isActive) return;
       this._renderResults(this._searchInput.value);
       this._highlightSelected(true);
     });
@@ -310,10 +262,15 @@ class NVApp {
           break;
         case 'Enter':
           e.preventDefault();
-          if (this._renameMode) { this._commitRename(); } else { this._handleEnter(); }
+          if (this._rename.isActive) { this._handleRenameCommit(); } else { this._handleEnter(); }
           break;
         case 'Escape':
-          if (this._renameMode) { e.preventDefault(); this._cancelRename(); }
+          if (this._rename.isActive) {
+            e.preventDefault();
+            this._rename.cancel(this._searchInput);
+            this._renderResults(this._rename.savedQuery);
+            this._highlightSelected(false);
+          }
           break;
         case 'Delete':
           if (e.metaKey || e.ctrlKey) {
@@ -392,7 +349,7 @@ class NVApp {
       else if (e.key === '0') { e.preventDefault(); this._fontSize.change(0); }
       else if (e.key === 'p') { e.preventDefault(); this._preview.toggle(); }
       else if (e.key === 'd') { e.preventDefault(); this._deleteCurrentNote(); }
-      else if (e.key === 'r') { e.preventDefault(); this._enterRenameMode(); }
+      else if (e.key === 'r') { e.preventDefault(); this._rename.enter(this._currentTitle!, this._searchInput); }
     });
   }
 
@@ -407,6 +364,18 @@ class NVApp {
     const item = items[this._selectedIndex] as HTMLElement | undefined;
     item?.scrollIntoView({ block: 'nearest' });
     item?.focus();
+  }
+
+  private async _handleRenameCommit(): Promise<void> {
+    const result = await this._rename.commit(
+      this._searchInput,
+      this._currentTitle!,
+      this._notes.map((n) => n.title),
+    );
+    if (!result) return;
+    this._currentTitle = result.newTitle;
+    this._renderResults(this._rename.savedQuery);
+    this._highlightSelected(false);
   }
 
   private async _handleEnter(): Promise<void> {
