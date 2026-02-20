@@ -237,6 +237,16 @@ html, body {
   margin: 1em 0;
 }
 
+/* Word count status line */
+#word-count {
+  flex-shrink: 0;
+  padding: 2px 18px;
+  font-size: 0.75em;
+  color: var(--text-dim);
+  text-align: right;
+  user-select: none;
+}
+
 /* Toast notification */
 #toast {
   position: fixed;

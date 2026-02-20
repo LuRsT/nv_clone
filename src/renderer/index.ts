@@ -5,6 +5,7 @@ import {
   handleEnterDecision,
   restoreSelectionIndex,
   deleteWordBackward,
+  countWords,
 } from './app-logic'
 import type { NoteInfo } from './window'
 import type { NoteRepository, VaultService, ThemeService } from './ports'
@@ -85,6 +86,7 @@ class NVApp {
   private _searchInput: HTMLInputElement;
   private _resultsList: HTMLUListElement;
   private _editor: HTMLTextAreaElement;
+  private _wordCount: HTMLDivElement;
 
   private _notes: NoteInfo[] = [];
   private _filtered: NoteInfo[] = [];
@@ -104,6 +106,7 @@ class NVApp {
     this._searchInput = requireElement<HTMLInputElement>('search-input');
     this._resultsList = requireElement<HTMLUListElement>('results-list');
     this._editor = requireElement<HTMLTextAreaElement>('editor');
+    this._wordCount = requireElement<HTMLDivElement>('word-count');
     const toastEl = requireElement<HTMLDivElement>('toast');
     this._toast = new ToastController(toastEl);
     this._autosave = new AutosaveController(ports.notes, this._toast);
@@ -192,7 +195,13 @@ class NVApp {
     this._currentTitle = title;
     const body = await this._ports.notes.read(title);
     this._editor.value = body;
+    this._updateWordCount();
     if (this._preview.isActive) this._preview.render();
+  }
+
+  private _updateWordCount(): void {
+    const count = countWords(this._editor.value);
+    this._wordCount.textContent = count === 1 ? '1 word' : `${count} words`;
   }
 
   private async _createNote(title: string): Promise<void> {
@@ -209,6 +218,7 @@ class NVApp {
     this._highlightSelected(false);
     this._currentTitle = title;
     this._editor.value = '';
+    this._updateWordCount();
     this._editor.focus();
   }
 
@@ -223,6 +233,7 @@ class NVApp {
     }
     this._currentTitle = null;
     this._editor.value = '';
+    this._updateWordCount();
     await this._loadNotes();
     this._searchInput.focus();
     this._toast.show(`"${deleted}" deleted`);
@@ -282,12 +293,14 @@ class NVApp {
     });
 
     this._editor.addEventListener('input', () => {
+      this._updateWordCount();
       if (this._currentTitle) this._autosave.schedule(this._currentTitle, () => this._editor.value);
     });
     this._editor.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'w') {
         e.preventDefault();
         this._applyWordBackspace(this._editor);
+        this._updateWordCount();
         if (this._currentTitle) this._autosave.schedule(this._currentTitle, () => this._editor.value);
         return;
       }
