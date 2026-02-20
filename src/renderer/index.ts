@@ -6,8 +6,6 @@ import { filterNotes } from './search'
 import {
   handleEnterDecision,
   restoreSelectionIndex,
-  adjustFontSize,
-  FONT_SIZE_DEFAULT,
   deleteWordBackward,
   validateRename,
 } from './app-logic'
@@ -17,6 +15,7 @@ import { IpcNoteRepository, IpcVaultService, IpcThemeService } from './adapters/
 import { ToastController } from './controllers/toast-controller'
 import { AutosaveController } from './controllers/autosave-controller'
 import { ResizeController } from './controllers/resize-controller'
+import { FontSizeController } from './controllers/font-size-controller'
 
 export interface AppPorts {
   notes: NoteRepository;
@@ -91,11 +90,11 @@ class NVApp {
   private _previewMode = false;
   private _renameMode = false;
   private _savedQuery = '';
-  private _fontSize: number;
 
   private _toast: ToastController;
   private _autosave: AutosaveController;
   private _resize: ResizeController;
+  private _fontSize: FontSizeController;
   private _ports: AppPorts;
 
   constructor(ports: AppPorts) {
@@ -110,15 +109,14 @@ class NVApp {
       document.getElementById('resize-handle') as HTMLDivElement,
       document.getElementById('results-panel') as HTMLDivElement,
     );
-
-    this._fontSize = parseInt(localStorage.getItem('app-font-size') ?? '', 10) || FONT_SIZE_DEFAULT;
+    this._fontSize = new FontSizeController();
   }
 
   async init(): Promise<void> {
     await this._loadNotes();
     this._bindEvents();
     this._resize.bind();
-    this._applyFontSize();
+    this._fontSize.apply();
     this._searchInput.focus();
   }
 
@@ -388,9 +386,9 @@ class NVApp {
 
     window.addEventListener('keydown', (e) => {
       if (!e.ctrlKey && !e.metaKey) return;
-      if (e.key === '+' || e.key === '=') { e.preventDefault(); this._changeFontSize(1); }
-      else if (e.key === '-') { e.preventDefault(); this._changeFontSize(-1); }
-      else if (e.key === '0') { e.preventDefault(); this._changeFontSize(0); }
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); this._fontSize.change(1); }
+      else if (e.key === '-') { e.preventDefault(); this._fontSize.change(-1); }
+      else if (e.key === '0') { e.preventDefault(); this._fontSize.change(0); }
       else if (e.key === 'p') { e.preventDefault(); this._togglePreview(); }
       else if (e.key === 'd') { e.preventDefault(); this._deleteCurrentNote(); }
       else if (e.key === 'r') { e.preventDefault(); this._enterRenameMode(); }
@@ -441,13 +439,4 @@ class NVApp {
     this._preview.innerHTML = DOMPurify.sanitize(marked.parse(this._editor.value || '') as string);
   }
 
-  private _applyFontSize(): void {
-    document.documentElement.style.setProperty('--app-font-size', `${this._fontSize}px`);
-  }
-
-  private _changeFontSize(delta: number): void {
-    this._fontSize = adjustFontSize(this._fontSize, delta);
-    localStorage.setItem('app-font-size', String(this._fontSize));
-    this._applyFontSize();
-  }
 }
