@@ -82,6 +82,16 @@ export function deleteWordBackward(
 }
 
 /**
+ * Counts the number of words in a text string.
+ * Words are sequences of non-whitespace characters separated by whitespace.
+ */
+export function countWords(text: string): number {
+  const trimmed = text.trim();
+  if (!trimmed) return 0;
+  return trimmed.split(/\s+/).length;
+}
+
+/**
  * Validates a rename operation before hitting the disk.
  * Returns null if the rename is acceptable, or an error string to display.
  */

@@ -9,6 +9,7 @@ import {
   FONT_SIZE_DEFAULT,
   deleteWordBackward,
   validateRename,
+  countWords,
 } from '../src/renderer/app-logic'
 import type { NoteInfo } from '../src/renderer/window'
 
@@ -159,4 +160,30 @@ test('returns an error when the title conflicts with another note', () => {
   const result = validateRename('Beta', 'Alpha', EXISTING)
   assert.ok(result)
   assert.match(result!, /Beta/)
+})
+
+// ── countWords ────────────────────────────────────────────────────────────────
+
+test('counts words in a simple sentence', () => {
+  assert.equal(countWords('hello world'), 2)
+})
+
+test('returns 0 for an empty string', () => {
+  assert.equal(countWords(''), 0)
+})
+
+test('returns 0 for whitespace-only text', () => {
+  assert.equal(countWords('   \n\t  '), 0)
+})
+
+test('counts words separated by newlines and tabs', () => {
+  assert.equal(countWords('one\ntwo\tthree'), 3)
+})
+
+test('handles multiple spaces between words', () => {
+  assert.equal(countWords('hello    world'), 2)
+})
+
+test('counts words with leading and trailing whitespace', () => {
+  assert.equal(countWords('  hello world  '), 2)
 })
