@@ -276,16 +276,18 @@ class NVApp {
       }
     });
 
-    this._editor.addEventListener('input', () => this._autosave.schedule(this._currentTitle!, () => this._editor.value));
+    this._editor.addEventListener('input', () => {
+      if (this._currentTitle) this._autosave.schedule(this._currentTitle, () => this._editor.value);
+    });
     this._editor.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'w') {
         e.preventDefault();
         this._applyWordBackspace(this._editor);
-        this._autosave.schedule(this._currentTitle!, () => this._editor.value);
+        if (this._currentTitle) this._autosave.schedule(this._currentTitle, () => this._editor.value);
         return;
       }
       if (e.key === 'Escape') {
-        this._autosave.cancelAndFlush(this._currentTitle!, () => this._editor.value);
+        if (this._currentTitle) this._autosave.cancelAndFlush(this._currentTitle, () => this._editor.value);
         this._searchInput.focus();
         const len = this._searchInput.value.length;
         this._searchInput.setSelectionRange(len, len);
@@ -338,7 +340,7 @@ class NVApp {
       else if (e.key === '0') { e.preventDefault(); this._fontSize.change(0); }
       else if (e.key === 'p') { e.preventDefault(); this._preview.toggle(); }
       else if (e.key === 'd') { e.preventDefault(); this._deleteCurrentNote(); }
-      else if (e.key === 'r') { e.preventDefault(); this._rename.enter(this._currentTitle!, this._searchInput); }
+      else if (e.key === 'r') { e.preventDefault(); if (this._currentTitle) this._rename.enter(this._currentTitle, this._searchInput); }
     });
   }
 
@@ -356,9 +358,10 @@ class NVApp {
   }
 
   private async _handleRenameCommit(): Promise<void> {
+    if (!this._currentTitle) return;
     const result = await this._rename.commit(
       this._searchInput,
-      this._currentTitle!,
+      this._currentTitle,
       this._notes.map((n) => n.title),
     );
     if (!result) return;
