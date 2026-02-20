@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node build.js",
     "start": "node build.js && electron .",
+    "package": "node build.js && electron-builder",
     "test": "tsx --test 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   },
@@ -17,10 +18,32 @@
     "dompurify": "^3.3.1",
     "marked": "^17.0.3"
   },
+  "build": {
+    "appId": "com.nv.notes",
+    "productName": "NV",
+    "directories": {
+      "output": "release"
+    },
+    "electronDist": "node_modules/electron/dist",
+    "files": [
+      "dist/**/*"
+    ],
+    "linux": {
+      "target": ["dir"],
+      "category": "Office"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  },
   "devDependencies": {
     "@types/dompurify": "^3.0.5",
     "@types/node": "^25.3.0",
     "electron": "^40.6.0",
+    "electron-builder": "^26.8.1",
     "esbuild": "^0.27.3",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
