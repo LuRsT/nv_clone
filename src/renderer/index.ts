@@ -15,6 +15,7 @@ import type { NoteInfo } from './window'
 import type { NoteRepository, VaultService, ThemeService } from './ports'
 import { IpcNoteRepository, IpcVaultService, IpcThemeService } from './adapters/ipc-adapter'
 import { ToastController } from './controllers/toast-controller'
+import { AutosaveController } from './controllers/autosave-controller'
 
 export interface AppPorts {
   notes: NoteRepository;
@@ -87,7 +88,6 @@ class NVApp {
   private _filtered: NoteInfo[] = [];
   private _selectedIndex = -1;
   private _currentTitle: string | null = null;
-  private _saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   private _previewMode = false;
   private _renameMode = false;
@@ -96,6 +96,7 @@ class NVApp {
   private _fontSize: number;
 
   private _toast: ToastController;
+  private _autosave: AutosaveController;
   private _ports: AppPorts;
 
   constructor(ports: AppPorts) {
@@ -107,6 +108,7 @@ class NVApp {
     this._resizeHandle = document.getElementById('resize-handle') as HTMLDivElement;
     this._resultsPanel = document.getElementById('results-panel') as HTMLDivElement;
     this._toast = new ToastController(document.getElementById('toast') as HTMLDivElement);
+    this._autosave = new AutosaveController(ports.notes, this._toast);
 
     this._fontSize = parseInt(localStorage.getItem('app-font-size') ?? '', 10) || FONT_SIZE_DEFAULT;
   }
@@ -181,7 +183,7 @@ class NVApp {
 
   private async _openNote(title: string): Promise<void> {
     if (this._currentTitle === title) return;
-    this._cancelSave();
+    this._autosave.cancel();
     this._currentTitle = title;
     const body = await this._ports.notes.read(title);
     this._editor.value = body;
@@ -267,29 +269,6 @@ class NVApp {
     this._highlightSelected(false);
   }
 
-  // ── Autosave ──────────────────────────────────────────────────────────────
-
-  private _scheduleAutosave(): void {
-    this._cancelSave();
-    this._saveTimer = setTimeout(() => this._save(), 500);
-  }
-
-  private _cancelSave(): void {
-    if (this._saveTimer) {
-      clearTimeout(this._saveTimer);
-      this._saveTimer = null;
-    }
-  }
-
-  private async _save(): Promise<void> {
-    if (!this._currentTitle) return;
-    try {
-      await this._ports.notes.write(this._currentTitle, this._editor.value);
-    } catch (err) {
-      this._toast.show(`Failed to save: ${(err as Error).message}`);
-    }
-  }
-
   // ── Event wiring ──────────────────────────────────────────────────────────
 
   private _applyWordBackspace(el: HTMLInputElement | HTMLTextAreaElement): void {
@@ -346,12 +325,12 @@ class NVApp {
       }
     });
 
-    this._editor.addEventListener('input', () => this._scheduleAutosave());
+    this._editor.addEventListener('input', () => this._autosave.schedule(this._currentTitle!, () => this._editor.value));
     this._editor.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'w') {
         e.preventDefault();
         this._applyWordBackspace(this._editor);
-        this._scheduleAutosave();
+        this._autosave.schedule(this._currentTitle!, () => this._editor.value);
         return;
       }
       if (e.ctrlKey && e.key === 'j') {
@@ -361,8 +340,7 @@ class NVApp {
         e.preventDefault();
         this._moveSelectionInList(-1);
       } else if (e.key === 'Escape') {
-        this._cancelSave();
-        this._save();
+        this._autosave.cancelAndFlush(this._currentTitle!, () => this._editor.value);
         this._searchInput.focus();
         const len = this._searchInput.value.length;
         this._searchInput.setSelectionRange(len, len);
