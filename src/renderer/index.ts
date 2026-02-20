@@ -16,6 +16,7 @@ import type { NoteRepository, VaultService, ThemeService } from './ports'
 import { IpcNoteRepository, IpcVaultService, IpcThemeService } from './adapters/ipc-adapter'
 import { ToastController } from './controllers/toast-controller'
 import { AutosaveController } from './controllers/autosave-controller'
+import { ResizeController } from './controllers/resize-controller'
 
 export interface AppPorts {
   notes: NoteRepository;
@@ -81,8 +82,6 @@ class NVApp {
   private _resultsList: HTMLUListElement;
   private _editor: HTMLTextAreaElement;
   private _preview: HTMLDivElement;
-  private _resizeHandle: HTMLDivElement;
-  private _resultsPanel: HTMLDivElement;
 
   private _notes: NoteInfo[] = [];
   private _filtered: NoteInfo[] = [];
@@ -92,11 +91,11 @@ class NVApp {
   private _previewMode = false;
   private _renameMode = false;
   private _savedQuery = '';
-  private _resultsPanelHeight = 200;
   private _fontSize: number;
 
   private _toast: ToastController;
   private _autosave: AutosaveController;
+  private _resize: ResizeController;
   private _ports: AppPorts;
 
   constructor(ports: AppPorts) {
@@ -105,10 +104,12 @@ class NVApp {
     this._resultsList = document.getElementById('results-list') as HTMLUListElement;
     this._editor = document.getElementById('editor') as HTMLTextAreaElement;
     this._preview = document.getElementById('preview') as HTMLDivElement;
-    this._resizeHandle = document.getElementById('resize-handle') as HTMLDivElement;
-    this._resultsPanel = document.getElementById('results-panel') as HTMLDivElement;
     this._toast = new ToastController(document.getElementById('toast') as HTMLDivElement);
     this._autosave = new AutosaveController(ports.notes, this._toast);
+    this._resize = new ResizeController(
+      document.getElementById('resize-handle') as HTMLDivElement,
+      document.getElementById('results-panel') as HTMLDivElement,
+    );
 
     this._fontSize = parseInt(localStorage.getItem('app-font-size') ?? '', 10) || FONT_SIZE_DEFAULT;
   }
@@ -116,8 +117,7 @@ class NVApp {
   async init(): Promise<void> {
     await this._loadNotes();
     this._bindEvents();
-    this._bindResizeHandle();
-    this._applyResultsPanelHeight();
+    this._resize.bind();
     this._applyFontSize();
     this._searchInput.focus();
   }
@@ -424,40 +424,6 @@ class NVApp {
     } else {
       await this._createNote(decision.title);
     }
-  }
-
-  // ── Resize handle ─────────────────────────────────────────────────────────
-
-  private _bindResizeHandle(): void {
-    let startY = 0;
-    let startH = 0;
-
-    this._resizeHandle.addEventListener('mousedown', (e) => {
-      startY = e.clientY;
-      startH = this._resultsPanelHeight;
-      this._resizeHandle.classList.add('dragging');
-
-      const onMove = (ev: MouseEvent) => {
-        const delta = ev.clientY - startY;
-        this._resultsPanelHeight = Math.max(60, Math.min(500, startH + delta));
-        this._applyResultsPanelHeight();
-      };
-
-      const onUp = () => {
-        this._resizeHandle.classList.remove('dragging');
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-      };
-
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-      e.preventDefault();
-    });
-  }
-
-  private _applyResultsPanelHeight(): void {
-    this._resultsPanel.style.height = `${this._resultsPanelHeight}px`;
-    this._resultsPanel.style.maxHeight = `${this._resultsPanelHeight}px`;
   }
 
   private _togglePreview(): void {
