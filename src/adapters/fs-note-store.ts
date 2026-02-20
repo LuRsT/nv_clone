@@ -1,5 +1,5 @@
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs/promises';
 import { firstNonEmptyLine } from '../notes-helpers';
 import type { NoteInfo } from '../renderer/window';
 import type { NoteStore } from '../ports/note-store';
@@ -38,54 +38,59 @@ export class FsNoteStore implements NoteStore {
     return path.join(this._vaultPath, `${title}.md`);
   }
 
-  list(): NoteInfo[] {
+  async list(): Promise<NoteInfo[]> {
     let files: string[];
     try {
-      files = fs.readdirSync(this._vaultPath);
+      files = await fs.readdir(this._vaultPath);
     } catch {
       return [];
     }
 
-    return files
-      .filter((f) => f.endsWith('.md') && !f.startsWith('.'))
-      .map((f) => {
-        const title = f.slice(0, -3);
-        const filePath = path.join(this._vaultPath, f);
-        let stat: fs.Stats, body: string;
-        try {
-          stat = fs.statSync(filePath);
-          body = fs.readFileSync(filePath, 'utf8');
-        } catch {
-          return null;
-        }
-        const excerpt = firstNonEmptyLine(body);
-        return { title, excerpt, body, mtime: stat.mtimeMs };
-      })
+    const results = await Promise.all(
+      files
+        .filter((f) => f.endsWith('.md') && !f.startsWith('.'))
+        .map(async (f) => {
+          const title = f.slice(0, -3);
+          const filePath = path.join(this._vaultPath, f);
+          try {
+            const [stat, body] = await Promise.all([
+              fs.stat(filePath),
+              fs.readFile(filePath, 'utf8'),
+            ]);
+            const excerpt = firstNonEmptyLine(body);
+            return { title, excerpt, body, mtime: stat.mtimeMs };
+          } catch {
+            return null;
+          }
+        }),
+    );
+
+    return results
       .filter((n): n is NoteInfo => n !== null)
       .sort((a, b) => b.mtime - a.mtime);
   }
 
-  read(title: string): string {
+  async read(title: string): Promise<string> {
     try {
-      return fs.readFileSync(this._notePath(title), 'utf8');
+      return await fs.readFile(this._notePath(title), 'utf8');
     } catch {
       return '';
     }
   }
 
-  write(title: string, body: string): void {
-    fs.writeFileSync(this._notePath(title), body, 'utf8');
+  async write(title: string, body: string): Promise<void> {
+    await fs.writeFile(this._notePath(title), body, 'utf8');
   }
 
-  delete(title: string): void {
+  async delete(title: string): Promise<void> {
     try {
-      fs.unlinkSync(this._notePath(title));
+      await fs.unlink(this._notePath(title));
     } catch {
       // already gone
     }
   }
 
-  rename(oldTitle: string, newTitle: string): void {
-    fs.renameSync(this._notePath(oldTitle), this._notePath(newTitle));
+  async rename(oldTitle: string, newTitle: string): Promise<void> {
+    await fs.rename(this._notePath(oldTitle), this._notePath(newTitle));
   }
 }

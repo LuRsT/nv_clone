@@ -61,9 +61,9 @@ function _startWatcher(): void {
     ignoreInitial: true,
   });
 
-  const _push = () => {
+  const _push = async () => {
     if (_mainWindow && !_mainWindow.isDestroyed() && _noteStore) {
-      _mainWindow.webContents.send('notes:changed', _noteStore.list());
+      _mainWindow.webContents.send('notes:changed', await _noteStore.list());
     }
   };
 
@@ -90,22 +90,22 @@ ipcMain.handle('vault:select', async () => {
   return _vaultPath;
 });
 
-ipcMain.handle('notes:list', () => _noteStore?.list() ?? []);
+ipcMain.handle('notes:list', async () => (await _noteStore?.list()) ?? []);
 
-ipcMain.handle('notes:read', (_event, title: string) => {
-  return _noteStore?.read(title) ?? '';
+ipcMain.handle('notes:read', async (_event, title: string) => {
+  return (await _noteStore?.read(title)) ?? '';
 });
 
-ipcMain.handle('notes:write', (_event, title: string, body: string) => {
-  _noteStore?.write(title, body);
+ipcMain.handle('notes:write', async (_event, title: string, body: string) => {
+  await _noteStore?.write(title, body);
 });
 
-ipcMain.handle('notes:rename', (_event, oldTitle: string, newTitle: string) => {
-  _noteStore?.rename(oldTitle, newTitle);
+ipcMain.handle('notes:rename', async (_event, oldTitle: string, newTitle: string) => {
+  await _noteStore?.rename(oldTitle, newTitle);
 });
 
-ipcMain.handle('notes:delete', (_event, title: string) => {
-  _noteStore?.delete(title);
+ipcMain.handle('notes:delete', async (_event, title: string) => {
+  await _noteStore?.delete(title);
 });
 
 ipcMain.handle('theme:isDark', () => nativeTheme.shouldUseDarkColors);
@@ -133,7 +133,7 @@ function _buildMenu(): void {
               _writeConfig({ vaultPath: _vaultPath as string });
               _startWatcher();
               if (_noteStore && !_mainWindow.isDestroyed()) {
-                _mainWindow.webContents.send('notes:changed', _noteStore.list());
+                _mainWindow.webContents.send('notes:changed', await _noteStore.list());
               }
             }
           },
