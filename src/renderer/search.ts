@@ -10,7 +10,7 @@ export function filterNotes(notes: NoteInfo[], query: string): NoteInfo[] {
   return notes.filter((note) => {
     return (
       note.title.toLowerCase().includes(q) ||
-      note.excerpt.toLowerCase().includes(q)
+      note.body.toLowerCase().includes(q)
     );
   });
 }

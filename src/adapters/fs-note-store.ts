@@ -59,7 +59,7 @@ export class FsNoteStore implements NoteStore {
           return null;
         }
         const excerpt = firstNonEmptyLine(body);
-        return { title, excerpt, mtime: stat.mtimeMs };
+        return { title, excerpt, body, mtime: stat.mtimeMs };
       })
       .filter((n): n is NoteInfo => n !== null)
       .sort((a, b) => b.mtime - a.mtime);

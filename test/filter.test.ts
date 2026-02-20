@@ -6,9 +6,9 @@ import { filterNotes } from '../src/renderer/search'
 import type { NoteInfo } from '../src/renderer/window'
 
 const NOTES: NoteInfo[] = [
-  { title: 'Shopping list', excerpt: 'milk eggs bread', mtime: 3000 },
-  { title: 'Meeting notes', excerpt: 'discussed roadmap', mtime: 2000 },
-  { title: 'Ideas', excerpt: 'build a new app', mtime: 1000 },
+  { title: 'Shopping list', excerpt: 'milk eggs bread', body: 'milk eggs bread\nbananas oranges', mtime: 3000 },
+  { title: 'Meeting notes', excerpt: 'discussed roadmap', body: 'discussed roadmap\naction items pending', mtime: 2000 },
+  { title: 'Ideas', excerpt: 'build a new app', body: 'build a new app\nuse electron framework', mtime: 1000 },
 ]
 
 test('empty query returns all notes unchanged', () => {
@@ -27,6 +27,12 @@ test('filters by excerpt/body substring', () => {
   const result = filterNotes(NOTES, 'roadmap')
   assert.equal(result.length, 1)
   assert.equal(result[0].title, 'Meeting notes')
+})
+
+test('filters by content beyond the first line', () => {
+  const result = filterNotes(NOTES, 'electron')
+  assert.equal(result.length, 1)
+  assert.equal(result[0].title, 'Ideas')
 })
 
 test('matches both title and body simultaneously', () => {

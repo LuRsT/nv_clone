@@ -1,4 +1,4 @@
-export interface NoteInfo { title: string; excerpt: string; mtime: number }
+export interface NoteInfo { title: string; excerpt: string; body: string; mtime: number }
 
 export interface WindowApi {
   selectVault(): Promise<string | null>

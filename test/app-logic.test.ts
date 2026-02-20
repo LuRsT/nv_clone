@@ -15,9 +15,9 @@ import type { NoteInfo } from '../src/renderer/window'
 // ── handleEnterDecision ────────────────────────────────────────────────────────
 
 const NOTES: NoteInfo[] = [
-  { title: 'Alpha', excerpt: 'first note', mtime: 3000 },
-  { title: 'Beta', excerpt: 'second note', mtime: 2000 },
-  { title: 'Gamma', excerpt: 'third note', mtime: 1000 },
+  { title: 'Alpha', excerpt: 'first note', body: 'first note', mtime: 3000 },
+  { title: 'Beta', excerpt: 'second note', body: 'second note', mtime: 2000 },
+  { title: 'Gamma', excerpt: 'third note', body: 'third note', mtime: 1000 },
 ]
 
 test('opens selected note when results exist', () => {
