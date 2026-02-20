@@ -2,6 +2,8 @@
 
 A keyboard-first note-taking app inspired by [Notational Velocity](https://notational.net/). Notes are plain `.md` files in a folder you choose. There is no database, no sync, no proprietary format — just files.
 
+NOTE: Apart from this line in the README.md I (Gil) didn't touch the code in this repo, this project is an experience in getting Claude to build an app in a language I don't know in an environment I have no experience with.
+
 ```
 ┌─────────────────────────────────┐
 │         Search Bar              │
