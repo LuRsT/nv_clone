@@ -11,6 +11,11 @@ import fs from 'fs';
 import chokidar from 'chokidar';
 import { FsNoteStore } from './adapters/fs-note-store';
 
+const WINDOW_WIDTH = 900;
+const WINDOW_HEIGHT = 700;
+const WINDOW_MIN_WIDTH = 500;
+const WINDOW_MIN_HEIGHT = 400;
+
 // ── Vault config persistence ──────────────────────────────────────────────────
 
 const _configPath = path.join(app.getPath('userData'), 'config.json');
@@ -168,10 +173,10 @@ function _buildMenu(): void {
 
 function createWindow(): void {
   _mainWindow = new BrowserWindow({
-    width: 900,
-    height: 700,
-    minWidth: 500,
-    minHeight: 400,
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT,
+    minWidth: WINDOW_MIN_WIDTH,
+    minHeight: WINDOW_MIN_HEIGHT,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

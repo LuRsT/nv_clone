@@ -1,6 +1,8 @@
 import type { NoteRepository } from '../ports'
 import type { ToastController } from './toast-controller'
 
+const AUTOSAVE_DELAY_MS = 500;
+
 export class AutosaveController {
   private _saveTimer: ReturnType<typeof setTimeout> | null = null;
   private _notes: NoteRepository;
@@ -13,7 +15,7 @@ export class AutosaveController {
 
   schedule(title: string, getBody: () => string): void {
     this.cancel();
-    this._saveTimer = setTimeout(() => this._save(title, getBody()), 500);
+    this._saveTimer = setTimeout(() => this._save(title, getBody()), AUTOSAVE_DELAY_MS);
   }
 
   async cancelAndFlush(title: string, getBody: () => string): Promise<void> {

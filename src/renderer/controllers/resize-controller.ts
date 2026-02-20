@@ -1,7 +1,11 @@
+const PANEL_HEIGHT_MIN = 60;
+const PANEL_HEIGHT_MAX = 500;
+const PANEL_HEIGHT_DEFAULT = 200;
+
 export class ResizeController {
   private _resizeHandle: HTMLDivElement;
   private _resultsPanel: HTMLDivElement;
-  private _resultsPanelHeight = 200;
+  private _resultsPanelHeight = PANEL_HEIGHT_DEFAULT;
 
   constructor(resizeHandle: HTMLDivElement, resultsPanel: HTMLDivElement) {
     this._resizeHandle = resizeHandle;
@@ -19,7 +23,7 @@ export class ResizeController {
 
       const onMove = (ev: MouseEvent) => {
         const delta = ev.clientY - startY;
-        this._resultsPanelHeight = Math.max(60, Math.min(500, startH + delta));
+        this._resultsPanelHeight = Math.max(PANEL_HEIGHT_MIN, Math.min(PANEL_HEIGHT_MAX, startH + delta));
         this._apply();
       };
 
