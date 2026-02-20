@@ -14,6 +14,7 @@ import {
 import type { NoteInfo } from './window'
 import type { NoteRepository, VaultService, ThemeService } from './ports'
 import { IpcNoteRepository, IpcVaultService, IpcThemeService } from './adapters/ipc-adapter'
+import { ToastController } from './controllers/toast-controller'
 
 export interface AppPorts {
   notes: NoteRepository;
@@ -79,7 +80,6 @@ class NVApp {
   private _resultsList: HTMLUListElement;
   private _editor: HTMLTextAreaElement;
   private _preview: HTMLDivElement;
-  private _toast: HTMLDivElement;
   private _resizeHandle: HTMLDivElement;
   private _resultsPanel: HTMLDivElement;
 
@@ -88,8 +88,6 @@ class NVApp {
   private _selectedIndex = -1;
   private _currentTitle: string | null = null;
   private _saveTimer: ReturnType<typeof setTimeout> | null = null;
-  private _toastTimer: ReturnType<typeof setTimeout> | null = null;
-  private _toastHideTimer: ReturnType<typeof setTimeout> | null = null;
 
   private _previewMode = false;
   private _renameMode = false;
@@ -97,6 +95,7 @@ class NVApp {
   private _resultsPanelHeight = 200;
   private _fontSize: number;
 
+  private _toast: ToastController;
   private _ports: AppPorts;
 
   constructor(ports: AppPorts) {
@@ -105,9 +104,9 @@ class NVApp {
     this._resultsList = document.getElementById('results-list') as HTMLUListElement;
     this._editor = document.getElementById('editor') as HTMLTextAreaElement;
     this._preview = document.getElementById('preview') as HTMLDivElement;
-    this._toast = document.getElementById('toast') as HTMLDivElement;
     this._resizeHandle = document.getElementById('resize-handle') as HTMLDivElement;
     this._resultsPanel = document.getElementById('results-panel') as HTMLDivElement;
+    this._toast = new ToastController(document.getElementById('toast') as HTMLDivElement);
 
     this._fontSize = parseInt(localStorage.getItem('app-font-size') ?? '', 10) || FONT_SIZE_DEFAULT;
   }
@@ -193,7 +192,7 @@ class NVApp {
     try {
       await this._ports.notes.write(title, '');
     } catch (err) {
-      this._showToast(`Failed to create note: ${(err as Error).message}`);
+      this._toast.show(`Failed to create note: ${(err as Error).message}`);
       return;
     }
     await this._loadNotes();
@@ -211,14 +210,14 @@ class NVApp {
     try {
       await this._ports.notes.delete(deleted);
     } catch (err) {
-      this._showToast(`Failed to delete: ${(err as Error).message}`);
+      this._toast.show(`Failed to delete: ${(err as Error).message}`);
       return;
     }
     this._currentTitle = null;
     this._editor.value = '';
     await this._loadNotes();
     this._searchInput.focus();
-    this._showToast(`"${deleted}" deleted`);
+    this._toast.show(`"${deleted}" deleted`);
   }
 
   // ── Rename mode ─────────────────────────────────────────────────────────────
@@ -238,7 +237,7 @@ class NVApp {
     const newTitle = this._searchInput.value.trim();
     const error = validateRename(newTitle, this._currentTitle!, this._notes.map((n) => n.title));
     if (error) {
-      this._showToast(error);
+      this._toast.show(error);
       return;
     }
 
@@ -247,7 +246,7 @@ class NVApp {
       try {
         await this._ports.notes.rename(oldTitle, newTitle);
       } catch (err) {
-        this._showToast(`Failed to rename: ${(err as Error).message}`);
+        this._toast.show(`Failed to rename: ${(err as Error).message}`);
         return;
       }
       this._currentTitle = newTitle;
@@ -266,20 +265,6 @@ class NVApp {
     this._searchInput.value = query;
     this._renderResults(query);
     this._highlightSelected(false);
-  }
-
-  private _showToast(message: string): void {
-    if (this._toastTimer) clearTimeout(this._toastTimer);
-    if (this._toastHideTimer) clearTimeout(this._toastHideTimer);
-    this._toast.textContent = message;
-    this._toast.hidden = false;
-    // Force reflow so the transition fires even on rapid successive calls.
-    this._toast.getBoundingClientRect();
-    this._toast.classList.add('visible');
-    this._toastTimer = setTimeout(() => {
-      this._toast.classList.remove('visible');
-      this._toastHideTimer = setTimeout(() => { this._toast.hidden = true; }, 150);
-    }, 2000);
   }
 
   // ── Autosave ──────────────────────────────────────────────────────────────
@@ -301,7 +286,7 @@ class NVApp {
     try {
       await this._ports.notes.write(this._currentTitle, this._editor.value);
     } catch (err) {
-      this._showToast(`Failed to save: ${(err as Error).message}`);
+      this._toast.show(`Failed to save: ${(err as Error).message}`);
     }
   }
 

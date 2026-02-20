@@ -1,8 +1,14 @@
 # TODO
 
 ## In Progress
+- [-] Extract ToastController
 
 ## To Do
+- [ ] Extract AutosaveController
+- [ ] Extract ResizeController
+- [ ] Extract FontSizeController
+- [ ] Extract PreviewController
+- [ ] Extract RenameController
 
 ## Done
 - [x] Scaffold Electron project (package.json, main/preload/renderer files, directory structure)
