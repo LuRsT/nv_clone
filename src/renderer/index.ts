@@ -202,6 +202,7 @@ class NVApp {
       this._toast.show(`Failed to create note: ${(err as Error).message}`);
       return;
     }
+    this._searchInput.value = '';
     await this._loadNotes();
     const idx = this._filtered.findIndex((n) => n.title === title);
     if (idx >= 0) this._selectedIndex = idx;
