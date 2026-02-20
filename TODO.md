@@ -1,16 +1,16 @@
 # TODO
 
 ## In Progress
-- [-] Extract ToastController
 
 ## To Do
-- [ ] Extract AutosaveController
-- [ ] Extract ResizeController
-- [ ] Extract FontSizeController
-- [ ] Extract PreviewController
-- [ ] Extract RenameController
 
 ## Done
+- [x] Extract ToastController
+- [x] Extract AutosaveController
+- [x] Extract ResizeController
+- [x] Extract FontSizeController
+- [x] Extract PreviewController
+- [x] Extract RenameController
 - [x] Scaffold Electron project (package.json, main/preload/renderer files, directory structure)
 - [x] Implement vault selection and persistence (first-launch folder picker, userData config)
 - [x] Implement main process IPC handlers (notes:list, notes:read, notes:write, notes:delete, vault:select)
