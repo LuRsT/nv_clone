@@ -75,6 +75,12 @@ function startApp(ports: AppPorts): void {
   app.init();
 }
 
+function requireElement<T extends HTMLElement>(id: string): T {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`Required DOM element #${id} not found`);
+  return el as T;
+}
+
 class NVApp {
   private _searchInput: HTMLInputElement;
   private _resultsList: HTMLUListElement;
@@ -95,19 +101,20 @@ class NVApp {
 
   constructor(ports: AppPorts) {
     this._ports = ports;
-    this._searchInput = document.getElementById('search-input') as HTMLInputElement;
-    this._resultsList = document.getElementById('results-list') as HTMLUListElement;
-    this._editor = document.getElementById('editor') as HTMLTextAreaElement;
-    this._toast = new ToastController(document.getElementById('toast') as HTMLDivElement);
+    this._searchInput = requireElement<HTMLInputElement>('search-input');
+    this._resultsList = requireElement<HTMLUListElement>('results-list');
+    this._editor = requireElement<HTMLTextAreaElement>('editor');
+    const toastEl = requireElement<HTMLDivElement>('toast');
+    this._toast = new ToastController(toastEl);
     this._autosave = new AutosaveController(ports.notes, this._toast);
     this._resize = new ResizeController(
-      document.getElementById('resize-handle') as HTMLDivElement,
-      document.getElementById('results-panel') as HTMLDivElement,
+      requireElement<HTMLDivElement>('resize-handle'),
+      requireElement<HTMLDivElement>('results-panel'),
     );
     this._fontSize = new FontSizeController();
     this._preview = new PreviewController(
       this._editor,
-      document.getElementById('preview') as HTMLDivElement,
+      requireElement<HTMLDivElement>('preview'),
     );
     this._rename = new RenameController(ports.notes, this._toast);
   }
