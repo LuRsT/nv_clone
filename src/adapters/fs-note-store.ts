@@ -15,7 +15,26 @@ export class FsNoteStore implements NoteStore {
     this._vaultPath = p;
   }
 
+  private _assertSafeTitle(title: string): void {
+    if (
+      !title ||
+      title.includes('/') ||
+      title.includes('\\') ||
+      title.includes('\0') ||
+      title === '.' ||
+      title === '..' ||
+      title.startsWith('.')
+    ) {
+      throw new Error(`Invalid note title: "${title}"`);
+    }
+    const resolved = path.resolve(this._vaultPath, `${title}.md`);
+    if (!resolved.startsWith(this._vaultPath + path.sep)) {
+      throw new Error(`Invalid note title: "${title}"`);
+    }
+  }
+
   private _notePath(title: string): string {
+    this._assertSafeTitle(title);
     return path.join(this._vaultPath, `${title}.md`);
   }
 

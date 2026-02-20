@@ -72,14 +72,15 @@ function _startWatcher(): void {
 ipcMain.handle('vault:get', () => _vaultPath);
 
 ipcMain.handle('vault:select', async () => {
-  const result = await dialog.showOpenDialog(_mainWindow!, {
+  if (!_mainWindow) return null;
+  const result = await dialog.showOpenDialog(_mainWindow, {
     title: 'Choose Vault Folder',
     properties: ['openDirectory', 'createDirectory'],
   });
   if (result.canceled || result.filePaths.length === 0) return null;
 
   _setVault(result.filePaths[0]);
-  _writeConfig({ vaultPath: _vaultPath! });
+  _writeConfig({ vaultPath: _vaultPath as string });
   _startWatcher();
   return _vaultPath;
 });
@@ -117,15 +118,18 @@ function _buildMenu(): void {
         {
           label: 'Change Vault…',
           click: async () => {
-            const result = await dialog.showOpenDialog(_mainWindow!, {
+            if (!_mainWindow) return;
+            const result = await dialog.showOpenDialog(_mainWindow, {
               title: 'Choose Vault Folder',
               properties: ['openDirectory', 'createDirectory'],
             });
             if (!result.canceled && result.filePaths.length > 0) {
               _setVault(result.filePaths[0]);
-              _writeConfig({ vaultPath: _vaultPath! });
+              _writeConfig({ vaultPath: _vaultPath as string });
               _startWatcher();
-              _mainWindow!.webContents.send('notes:changed', _noteStore!.list());
+              if (_noteStore && !_mainWindow.isDestroyed()) {
+                _mainWindow.webContents.send('notes:changed', _noteStore.list());
+              }
             }
           },
         },
@@ -151,7 +155,7 @@ function _buildMenu(): void {
         {
           label: 'Toggle Developer Tools',
           accelerator: isMac ? 'Alt+Command+I' : 'Ctrl+Shift+I',
-          click: () => _mainWindow!.webContents.toggleDevTools(),
+          click: () => _mainWindow?.webContents.toggleDevTools(),
         },
       ],
     },

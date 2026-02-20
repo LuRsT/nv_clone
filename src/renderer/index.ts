@@ -1,6 +1,7 @@
 // Renderer entry point — runs in Chromium, window.api injected by preload.
 
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { filterNotes } from './search'
 import {
   handleEnterDecision,
@@ -88,6 +89,7 @@ class NVApp {
   private _currentTitle: string | null = null;
   private _saveTimer: ReturnType<typeof setTimeout> | null = null;
   private _toastTimer: ReturnType<typeof setTimeout> | null = null;
+  private _toastHideTimer: ReturnType<typeof setTimeout> | null = null;
 
   private _previewMode = false;
   private _renameMode = false;
@@ -188,7 +190,12 @@ class NVApp {
   }
 
   private async _createNote(title: string): Promise<void> {
-    await this._ports.notes.write(title, '');
+    try {
+      await this._ports.notes.write(title, '');
+    } catch (err) {
+      this._showToast(`Failed to create note: ${(err as Error).message}`);
+      return;
+    }
     await this._loadNotes();
     const idx = this._filtered.findIndex((n) => n.title === title);
     if (idx >= 0) this._selectedIndex = idx;
@@ -201,7 +208,12 @@ class NVApp {
   private async _deleteCurrentNote(): Promise<void> {
     if (!this._currentTitle) return;
     const deleted = this._currentTitle;
-    await this._ports.notes.delete(deleted);
+    try {
+      await this._ports.notes.delete(deleted);
+    } catch (err) {
+      this._showToast(`Failed to delete: ${(err as Error).message}`);
+      return;
+    }
     this._currentTitle = null;
     this._editor.value = '';
     await this._loadNotes();
@@ -232,7 +244,12 @@ class NVApp {
 
     const oldTitle = this._currentTitle!;
     if (newTitle !== oldTitle) {
-      await this._ports.notes.rename(oldTitle, newTitle);
+      try {
+        await this._ports.notes.rename(oldTitle, newTitle);
+      } catch (err) {
+        this._showToast(`Failed to rename: ${(err as Error).message}`);
+        return;
+      }
       this._currentTitle = newTitle;
     }
     this._exitRenameMode(this._savedQuery);
@@ -253,6 +270,7 @@ class NVApp {
 
   private _showToast(message: string): void {
     if (this._toastTimer) clearTimeout(this._toastTimer);
+    if (this._toastHideTimer) clearTimeout(this._toastHideTimer);
     this._toast.textContent = message;
     this._toast.hidden = false;
     // Force reflow so the transition fires even on rapid successive calls.
@@ -260,7 +278,7 @@ class NVApp {
     this._toast.classList.add('visible');
     this._toastTimer = setTimeout(() => {
       this._toast.classList.remove('visible');
-      this._toastTimer = setTimeout(() => { this._toast.hidden = true; }, 150);
+      this._toastHideTimer = setTimeout(() => { this._toast.hidden = true; }, 150);
     }, 2000);
   }
 
@@ -280,7 +298,11 @@ class NVApp {
 
   private async _save(): Promise<void> {
     if (!this._currentTitle) return;
-    await this._ports.notes.write(this._currentTitle, this._editor.value);
+    try {
+      await this._ports.notes.write(this._currentTitle, this._editor.value);
+    } catch (err) {
+      this._showToast(`Failed to save: ${(err as Error).message}`);
+    }
   }
 
   // ── Event wiring ──────────────────────────────────────────────────────────
@@ -487,7 +509,7 @@ class NVApp {
   }
 
   private _renderPreview(): void {
-    this._preview.innerHTML = marked.parse(this._editor.value || '') as string;
+    this._preview.innerHTML = DOMPurify.sanitize(marked.parse(this._editor.value || '') as string);
   }
 
   private _applyFontSize(): void {
