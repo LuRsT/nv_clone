@@ -1,6 +1,6 @@
 // Renderer entry point — runs in Chromium, window.api injected by preload.
 
-import { filterNotes } from './search'
+import { filterNotes, highlightMatches } from './search'
 import {
   handleEnterDecision,
   restoreSelectionIndex,
@@ -155,11 +155,11 @@ class NVApp {
 
       const titleEl = document.createElement('div');
       titleEl.className = 'note-title';
-      titleEl.textContent = note.title;
+      titleEl.innerHTML = highlightMatches(note.title, query);
 
       const excerptEl = document.createElement('div');
       excerptEl.className = 'note-excerpt';
-      excerptEl.textContent = note.excerpt;
+      excerptEl.innerHTML = highlightMatches(note.excerpt, query);
 
       li.setAttribute('tabindex', '-1');
       li.appendChild(titleEl);

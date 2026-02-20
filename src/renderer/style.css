@@ -126,6 +126,15 @@ html, body {
   margin-top: 1px;
 }
 
+/* Search highlight */
+.note-title mark,
+.note-excerpt mark {
+  background: var(--accent-bg);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
 /* Resize handle */
 #resize-handle {
   flex-shrink: 0;

@@ -5,6 +5,17 @@
 ## To Do
 
 ## Done
+- [x] Add search highlight in results (title + excerpt)
+- [x] Escape in search bar clears the query
+- [x] Clear search bar after note creation
+- [x] Fix search to match full note body, not just excerpt
+- [x] Persist results panel height in localStorage
+- [x] Convert synchronous file I/O to async in FsNoteStore
+- [x] Extract centralized keyboard shortcut handler
+- [x] Clean up inconsistent state management (_selectedIndex, _currentTitle)
+- [x] Replace fragile regex HTML transform in build.js
+- [x] Add null checks on DOM queries in NVApp constructor
+- [x] Extract hardcoded magic numbers into named constants
 - [x] Extract ToastController
 - [x] Extract AutosaveController
 - [x] Extract ResizeController
