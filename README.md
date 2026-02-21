@@ -87,6 +87,19 @@ This produces an executable in `release/linux-unpacked/` (Linux), or a `.dmg` (m
 
 Go to **File → Change Vault…** in the menu bar to switch to a different folder.
 
+## Releasing a new version
+
+1. Bump the version in `package.json`
+2. Commit the change and push to `master`
+3. Tag the commit and push the tag:
+
+```bash
+git tag v1.0.0
+git push --tags
+```
+
+The `v*` tag push triggers the [release workflow](.github/workflows/release.yml), which builds Electron binaries for Linux, macOS, and Windows and uploads them to a GitHub Release.
+
 ## Development
 
 ```bash
