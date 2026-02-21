@@ -1,6 +1,13 @@
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 
+marked.use({
+  async: false,
+  renderer: {
+    html(_token) { return ''; },
+  },
+});
+
 export class PreviewController {
   private _editor: HTMLTextAreaElement;
   private _preview: HTMLDivElement;
@@ -27,6 +34,10 @@ export class PreviewController {
   }
 
   render(): void {
-    this._preview.innerHTML = DOMPurify.sanitize(marked.parse(this._editor.value || '') as string);
+    try {
+      this._preview.innerHTML = DOMPurify.sanitize(marked.parse(this._editor.value || '') as string);
+    } catch {
+      this._preview.textContent = 'Failed to render preview';
+    }
   }
 }
