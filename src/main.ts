@@ -95,22 +95,44 @@ ipcMain.handle('vault:select', async () => {
   return _vaultPath;
 });
 
-ipcMain.handle('notes:list', async () => (await _noteStore?.list()) ?? []);
+ipcMain.handle('notes:list', async () => {
+  try {
+    return (await _noteStore?.list()) ?? [];
+  } catch {
+    return [];
+  }
+});
 
 ipcMain.handle('notes:read', async (_event, title: string) => {
-  return (await _noteStore?.read(title)) ?? '';
+  try {
+    return (await _noteStore?.read(title)) ?? '';
+  } catch {
+    return '';
+  }
 });
 
 ipcMain.handle('notes:write', async (_event, title: string, body: string) => {
-  await _noteStore?.write(title, body);
+  try {
+    await _noteStore?.write(title, body);
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : 'Failed to write note');
+  }
 });
 
 ipcMain.handle('notes:rename', async (_event, oldTitle: string, newTitle: string) => {
-  await _noteStore?.rename(oldTitle, newTitle);
+  try {
+    await _noteStore?.rename(oldTitle, newTitle);
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : 'Failed to rename note');
+  }
 });
 
 ipcMain.handle('notes:delete', async (_event, title: string) => {
-  await _noteStore?.delete(title);
+  try {
+    await _noteStore?.delete(title);
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : 'Failed to delete note');
+  }
 });
 
 ipcMain.handle('theme:isDark', () => nativeTheme.shouldUseDarkColors);
