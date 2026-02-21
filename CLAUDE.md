@@ -26,6 +26,10 @@ npm run typecheck  # Type-check without emitting (tsc --noEmit)
 npm run build      # Build only (node build.js)
 ```
 
+## Task Tracking
+
+This project uses **bd** (beads) for issue tracking — not TODO.md or ad-hoc task files. See `AGENTS.md` for commands and workflow.
+
 ## Architecture
 
 ### Hexagonal Architecture (Ports & Adapters)
@@ -49,18 +53,7 @@ The codebase uses a ports/adapters pattern to separate business logic from infra
 
 ### IPC Channels
 
-| Channel | Direction | Purpose |
-|---------|-----------|---------|
-| `vault:get` | renderer → main | Get current vault path |
-| `vault:select` | renderer → main | Open folder picker, set vault |
-| `notes:list` | renderer → main | List all notes (title, excerpt, body, mtime) |
-| `notes:read` | renderer → main | Read note body by title |
-| `notes:write` | renderer → main | Write note body to disk |
-| `notes:rename` | renderer → main | Rename note file |
-| `notes:delete` | renderer → main | Delete note file |
-| `theme:isDark` | renderer → main | Query OS theme |
-| `notes:changed` | main → renderer | Broadcast: file watcher detected changes |
-| `theme:changed` | main → renderer | Broadcast: OS theme changed |
+Defined in `src/preload.ts`. Namespaces: `vault:*`, `notes:*`, `theme:*`. See `src/main.ts` for handlers.
 
 ### UI Layout
 
