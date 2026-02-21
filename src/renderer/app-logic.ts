@@ -133,6 +133,21 @@ export function countWords(text: string): number {
 }
 
 /**
+ * Validates a note title for path safety on the renderer side.
+ * Returns null if valid, or a user-friendly error message string if invalid.
+ */
+export function validateTitle(title: string): string | null {
+  const trimmed = title.trim();
+  if (!trimmed) return 'Title cannot be empty';
+  if (trimmed === '..') return 'Title cannot be ".."';
+  if (trimmed.startsWith('.')) return 'Title cannot start with a dot';
+  if (trimmed.includes('/')) return 'Title cannot contain forward slashes';
+  if (trimmed.includes('\\')) return 'Title cannot contain backslashes';
+  if (trimmed.includes('\0')) return 'Title cannot contain null characters';
+  return null;
+}
+
+/**
  * Validates a rename operation before hitting the disk.
  * Returns null if the rename is acceptable, or an error string to display.
  */
@@ -141,8 +156,10 @@ export function validateRename(
   currentTitle: string,
   existingTitles: string[],
 ): string | null {
+  const titleError = validateTitle(newTitle);
+  if (titleError) return titleError;
+
   const trimmed = newTitle.trim();
-  if (!trimmed) return 'Title cannot be empty';
   if (trimmed !== currentTitle && existingTitles.includes(trimmed)) {
     return `"${trimmed}" already exists`;
   }

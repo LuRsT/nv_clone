@@ -9,6 +9,7 @@ import {
   FONT_SIZE_DEFAULT,
   deleteWordBackward,
   validateRename,
+  validateTitle,
   countWords,
   formatRelativeTime,
 } from '../src/renderer/app-logic'
@@ -131,6 +132,53 @@ test('is a no-op when cursor is at position 0', () => {
 test('deletes the selection when one exists', () => {
   const result = deleteWordBackward('hello world', 6, 11)
   assert.deepEqual(result, { newValue: 'hello ', newCursor: 6 })
+})
+
+// ── validateTitle ──────────────────────────────────────────────────────────────
+
+test('validateTitle returns null for a simple valid title', () => {
+  assert.equal(validateTitle('My Note'), null)
+})
+
+test('validateTitle returns null for a title with spaces and numbers', () => {
+  assert.equal(validateTitle('Meeting Notes 2026-02-21'), null)
+})
+
+test('validateTitle rejects an empty string', () => {
+  assert.ok(validateTitle(''))
+})
+
+test('validateTitle rejects a whitespace-only string', () => {
+  assert.ok(validateTitle('   '))
+})
+
+test('validateTitle rejects titles containing a forward slash', () => {
+  const result = validateTitle('path/to/note')
+  assert.ok(result)
+  assert.match(result!, /forward slash/)
+})
+
+test('validateTitle rejects titles containing a backslash', () => {
+  const result = validateTitle('path\\to\\note')
+  assert.ok(result)
+  assert.match(result!, /backslash/)
+})
+
+test('validateTitle rejects titles containing a null character', () => {
+  const result = validateTitle('bad\0title')
+  assert.ok(result)
+  assert.match(result!, /null/)
+})
+
+test('validateTitle rejects titles starting with a dot', () => {
+  const result = validateTitle('.hidden')
+  assert.ok(result)
+  assert.match(result!, /dot/)
+})
+
+test('validateTitle rejects ".."', () => {
+  const result = validateTitle('..')
+  assert.ok(result)
 })
 
 // ── validateRename ─────────────────────────────────────────────────────────────

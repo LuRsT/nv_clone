@@ -7,6 +7,7 @@ import {
   deleteWordBackward,
   countWords,
   formatRelativeTime,
+  validateTitle,
 } from './app-logic'
 import type { NoteInfo } from './window'
 import type { NoteRepository, VaultService, ThemeService } from './ports'
@@ -221,6 +222,11 @@ class NVApp {
   }
 
   private async _createNote(title: string): Promise<void> {
+    const titleError = validateTitle(title);
+    if (titleError) {
+      this._toast.show(titleError);
+      return;
+    }
     try {
       await this._ports.notes.write(title, '');
     } catch (err) {
