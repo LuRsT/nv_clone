@@ -61,10 +61,15 @@ function _startWatcher(): void {
     ignoreInitial: true,
   });
 
-  const _push = async () => {
-    if (_mainWindow && !_mainWindow.isDestroyed() && _noteStore) {
-      _mainWindow.webContents.send('notes:changed', await _noteStore.list());
-    }
+  let _pushTimer: ReturnType<typeof setTimeout> | null = null;
+  const _push = () => {
+    if (_pushTimer) clearTimeout(_pushTimer);
+    _pushTimer = setTimeout(async () => {
+      _pushTimer = null;
+      if (_mainWindow && !_mainWindow.isDestroyed() && _noteStore) {
+        _mainWindow.webContents.send('notes:changed', await _noteStore.list());
+      }
+    }, 100);
   };
 
   _watcher.on('add', _push);
