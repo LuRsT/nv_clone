@@ -29,7 +29,9 @@
       "dist/**/*"
     ],
     "linux": {
-      "target": ["dir"],
+      "target": [
+        "dir"
+      ],
       "category": "Office"
     },
     "mac": {
@@ -38,6 +40,9 @@
     "win": {
       "target": "nsis"
     }
+  },
+  "overrides": {
+    "minimatch": "^10.2.2"
   },
   "devDependencies": {
     "@types/dompurify": "^3.0.5",
