@@ -11,6 +11,7 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import chokidar from 'chokidar';
 import { FsNoteStore } from './adapters/fs-note-store';
+import { IPC } from './ipc-channels';
 
 const WINDOW_WIDTH = 900;
 const WINDOW_HEIGHT = 700;
@@ -68,7 +69,7 @@ function _startWatcher(): void {
     _pushTimer = setTimeout(async () => {
       _pushTimer = null;
       if (_mainWindow && !_mainWindow.isDestroyed() && _noteStore) {
-        _mainWindow.webContents.send('notes:changed', await _noteStore.list());
+        _mainWindow.webContents.send(IPC.NOTES_CHANGED, await _noteStore.list());
       }
     }, 100);
   };
@@ -83,9 +84,9 @@ function _startWatcher(): void {
 
 // ── IPC handlers ──────────────────────────────────────────────────────────────
 
-ipcMain.handle('vault:get', () => _vaultPath);
+ipcMain.handle(IPC.VAULT_GET, () => _vaultPath);
 
-ipcMain.handle('vault:select', async () => {
+ipcMain.handle(IPC.VAULT_SELECT, async () => {
   if (!_mainWindow) return null;
   const result = await dialog.showOpenDialog(_mainWindow, {
     title: 'Choose Vault Folder',
@@ -106,7 +107,7 @@ ipcMain.handle('vault:select', async () => {
   return _vaultPath;
 });
 
-ipcMain.handle('notes:list', async () => {
+ipcMain.handle(IPC.NOTES_LIST, async () => {
   if (!_noteStore) return null;
   try {
     return await _noteStore.list();
@@ -115,7 +116,7 @@ ipcMain.handle('notes:list', async () => {
   }
 });
 
-ipcMain.handle('notes:read', async (_event, title: string) => {
+ipcMain.handle(IPC.NOTES_READ, async (_event, title: string) => {
   try {
     return (await _noteStore?.read(title)) ?? '';
   } catch {
@@ -123,7 +124,7 @@ ipcMain.handle('notes:read', async (_event, title: string) => {
   }
 });
 
-ipcMain.handle('notes:write', async (_event, title: string, body: string) => {
+ipcMain.handle(IPC.NOTES_WRITE, async (_event, title: string, body: string) => {
   try {
     await _noteStore?.write(title, body);
   } catch (err) {
@@ -131,7 +132,7 @@ ipcMain.handle('notes:write', async (_event, title: string, body: string) => {
   }
 });
 
-ipcMain.handle('notes:rename', async (_event, oldTitle: string, newTitle: string) => {
+ipcMain.handle(IPC.NOTES_RENAME, async (_event, oldTitle: string, newTitle: string) => {
   try {
     await _noteStore?.rename(oldTitle, newTitle);
   } catch (err) {
@@ -139,7 +140,7 @@ ipcMain.handle('notes:rename', async (_event, oldTitle: string, newTitle: string
   }
 });
 
-ipcMain.handle('notes:delete', async (_event, title: string) => {
+ipcMain.handle(IPC.NOTES_DELETE, async (_event, title: string) => {
   try {
     await _noteStore?.delete(title);
   } catch (err) {
@@ -147,7 +148,7 @@ ipcMain.handle('notes:delete', async (_event, title: string) => {
   }
 });
 
-ipcMain.handle('theme:isDark', () => nativeTheme.shouldUseDarkColors);
+ipcMain.handle(IPC.THEME_IS_DARK, () => nativeTheme.shouldUseDarkColors);
 
 // ── Application menu ──────────────────────────────────────────────────────────
 
@@ -178,7 +179,7 @@ function _buildMenu(): void {
               _writeConfig({ vaultPath: _vaultPath as string });
               _startWatcher();
               if (_noteStore && !_mainWindow.isDestroyed()) {
-                _mainWindow.webContents.send('notes:changed', await _noteStore.list());
+                _mainWindow.webContents.send(IPC.NOTES_CHANGED, await _noteStore.list());
               }
             }
           },
@@ -237,7 +238,7 @@ function createWindow(): void {
   nativeTheme.removeAllListeners('updated');
   nativeTheme.on('updated', () => {
     if (_mainWindow && !_mainWindow.isDestroyed()) {
-      _mainWindow.webContents.send('theme:changed', nativeTheme.shouldUseDarkColors);
+      _mainWindow.webContents.send(IPC.THEME_CHANGED, nativeTheme.shouldUseDarkColors);
     }
   });
 
