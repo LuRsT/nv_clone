@@ -233,7 +233,8 @@ function createWindow(): void {
 
   _mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
-  // Push theme changes to renderer
+  // Push theme changes to renderer (remove previous listener to avoid stacking)
+  nativeTheme.removeAllListeners('updated');
   nativeTheme.on('updated', () => {
     if (_mainWindow && !_mainWindow.isDestroyed()) {
       _mainWindow.webContents.send('theme:changed', nativeTheme.shouldUseDarkColors);
