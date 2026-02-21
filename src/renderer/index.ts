@@ -316,18 +316,18 @@ class NVApp {
 
     this._editor.addEventListener('input', () => {
       this._updateWordCount();
-      if (this._currentTitle) this._autosave.schedule(this._currentTitle, () => this._editor.value);
+      if (this._currentTitle) this._autosave.schedule(this._currentTitle, this._editor.value);
     });
     this._editor.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'w') {
         e.preventDefault();
         this._applyWordBackspace(this._editor);
         this._updateWordCount();
-        if (this._currentTitle) this._autosave.schedule(this._currentTitle, () => this._editor.value);
+        if (this._currentTitle) this._autosave.schedule(this._currentTitle, this._editor.value);
         return;
       }
       if (e.key === 'Escape') {
-        if (this._currentTitle) this._autosave.cancelAndFlush(this._currentTitle, () => this._editor.value);
+        if (this._currentTitle) this._autosave.cancelAndFlush(this._currentTitle, this._editor.value);
         this._searchInput.focus();
         const len = this._searchInput.value.length;
         this._searchInput.setSelectionRange(len, len);

@@ -13,14 +13,14 @@ export class AutosaveController {
     this._toast = toast;
   }
 
-  schedule(title: string, getBody: () => string): void {
+  schedule(title: string, body: string): void {
     this.cancel();
-    this._saveTimer = setTimeout(() => this._save(title, getBody()), AUTOSAVE_DELAY_MS);
+    this._saveTimer = setTimeout(() => this._save(title, body), AUTOSAVE_DELAY_MS);
   }
 
-  async cancelAndFlush(title: string, getBody: () => string): Promise<void> {
+  async cancelAndFlush(title: string, body: string): Promise<void> {
     this.cancel();
-    await this._save(title, getBody());
+    await this._save(title, body);
   }
 
   cancel(): void {
