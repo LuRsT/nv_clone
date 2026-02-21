@@ -369,6 +369,57 @@ html, body {
   opacity: 0.85;
 }
 
+/* Help overlay */
+#help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+#help-overlay.visible {
+  display: flex;
+}
+
+.help-panel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px 32px;
+  max-width: 420px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.help-panel h2 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.help-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88em;
+}
+
+.help-panel tr + tr td {
+  padding-top: 6px;
+}
+
+.help-panel .help-key {
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--text-dim);
+  padding-right: 18px;
+  width: 1%;
+}
+
 /* Empty state */
 #empty-state {
   padding: 18px 14px;

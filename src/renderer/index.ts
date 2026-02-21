@@ -17,6 +17,7 @@ import { ResizeController } from './controllers/resize-controller'
 import { FontSizeController } from './controllers/font-size-controller'
 import { PreviewController } from './controllers/preview-controller'
 import { RenameController } from './controllers/rename-controller'
+import { HelpController } from './controllers/help-controller'
 
 export interface AppPorts {
   notes: NoteRepository;
@@ -100,6 +101,7 @@ class NVApp {
   private _fontSize: FontSizeController;
   private _preview: PreviewController;
   private _rename: RenameController;
+  private _help: HelpController;
   private _ports: AppPorts;
 
   constructor(ports: AppPorts) {
@@ -121,6 +123,7 @@ class NVApp {
       requireElement<HTMLDivElement>('preview'),
     );
     this._rename = new RenameController(ports.notes, this._toast);
+    this._help = new HelpController();
   }
 
   async init(): Promise<void> {
@@ -368,6 +371,10 @@ class NVApp {
     });
 
     window.addEventListener('keydown', (e) => {
+      if (e.key === 'F1') { e.preventDefault(); this._help.toggle(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === '?') { e.preventDefault(); this._help.toggle(); return; }
+      if (e.key === 'Escape' && this._help.isVisible) { e.preventDefault(); this._help.toggle(); return; }
+      if (this._help.isVisible) return;
       if (!e.ctrlKey && !e.metaKey) return;
       if (e.key === 'j') { e.preventDefault(); this._moveSelectionInList(1); }
       else if (e.key === 'k') { e.preventDefault(); this._moveSelectionInList(-1); }
