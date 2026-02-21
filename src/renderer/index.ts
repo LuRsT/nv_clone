@@ -95,6 +95,7 @@ class NVApp {
   private _filtered: NoteInfo[] = [];
   private _selectedIndex = -1;
   private _currentTitle: string | null = null;
+  private _creating = false;
 
   private _toast: ToastController;
   private _autosave: AutosaveController;
@@ -222,15 +223,18 @@ class NVApp {
   }
 
   private async _createNote(title: string): Promise<void> {
+    if (this._creating) return;
     const titleError = validateTitle(title);
     if (titleError) {
       this._toast.show(titleError);
       return;
     }
+    this._creating = true;
     try {
       await this._ports.notes.write(title, '');
     } catch (err) {
       this._toast.show(`Failed to create note: ${(err as Error).message}`);
+      this._creating = false;
       return;
     }
     this._searchInput.value = '';
@@ -242,6 +246,7 @@ class NVApp {
     this._editor.value = '';
     this._updateWordCount();
     this._editor.focus();
+    this._creating = false;
   }
 
   private async _deleteCurrentNote(): Promise<void> {
