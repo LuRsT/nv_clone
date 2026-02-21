@@ -64,24 +64,30 @@ test('search is case-insensitive', () => {
 
 // ── sortNotes ─────────────────────────────────────────────────────────────────
 
+const UNSORTED_NOTES: NoteInfo[] = [
+  { title: 'Meeting notes', excerpt: 'discussed roadmap', body: 'discussed roadmap\naction items pending', mtime: 2000 },
+  { title: 'Ideas', excerpt: 'build a new app', body: 'build a new app\nuse electron framework', mtime: 5000 },
+  { title: 'Shopping list', excerpt: 'milk eggs bread', body: 'milk eggs bread\nbananas oranges', mtime: 1000 },
+]
+
 test('sortNotes by mtime returns notes newest-first', () => {
-  const result = sortNotes(NOTES, 'mtime')
-  assert.equal(result[0].mtime, 3000)
-  assert.equal(result[1].mtime, 2000)
-  assert.equal(result[2].mtime, 1000)
+  const result = sortNotes(UNSORTED_NOTES, 'mtime')
+  assert.equal(result[0].title, 'Ideas')
+  assert.equal(result[1].title, 'Meeting notes')
+  assert.equal(result[2].title, 'Shopping list')
 })
 
 test('sortNotes by title returns notes in alphabetical order', () => {
-  const result = sortNotes(NOTES, 'title')
+  const result = sortNotes(UNSORTED_NOTES, 'title')
   assert.equal(result[0].title, 'Ideas')
   assert.equal(result[1].title, 'Meeting notes')
   assert.equal(result[2].title, 'Shopping list')
 })
 
 test('sortNotes does not mutate the original array', () => {
-  const original = [...NOTES]
-  sortNotes(NOTES, 'title')
-  assert.deepEqual(NOTES, original)
+  const original = [...UNSORTED_NOTES]
+  sortNotes(UNSORTED_NOTES, 'title')
+  assert.deepEqual(UNSORTED_NOTES, original)
 })
 
 test('sortNotes on empty array returns empty array', () => {
