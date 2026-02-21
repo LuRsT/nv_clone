@@ -87,6 +87,8 @@ export function deleteWordBackward(
  */
 export function formatRelativeTime(mtime: number, now = Date.now()): string {
   const diffMs = now - mtime;
+  if (diffMs < 0) return 'Just now';
+
   const diffMin = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
 
@@ -98,8 +100,14 @@ export function formatRelativeTime(mtime: number, now = Date.now()): string {
   const nowDate = new Date(now);
 
   const todayStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()).getTime();
-  const yesterdayStart = todayStart - 86400000;
-  const weekAgoStart = todayStart - 6 * 86400000;
+
+  const yesterday = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate());
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStart = yesterday.getTime();
+
+  const weekAgo = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate());
+  weekAgo.setDate(weekAgo.getDate() - 6);
+  const weekAgoStart = weekAgo.getTime();
 
   if (mtime >= yesterdayStart && mtime < todayStart) return 'Yesterday';
 

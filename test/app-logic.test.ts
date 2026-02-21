@@ -226,3 +226,19 @@ test('returns "Mon DD, YYYY" for timestamps from a previous year', () => {
   const march5_2023 = new Date(2023, 2, 5, 10, 0, 0).getTime()
   assert.equal(formatRelativeTime(march5_2023, NOW), 'Mar 5, 2023')
 })
+
+test('returns "Just now" for future timestamps (clock skew)', () => {
+  assert.equal(formatRelativeTime(NOW + 60_000, NOW), 'Just now')
+})
+
+test('returns "1m ago" at exactly 60 seconds', () => {
+  assert.equal(formatRelativeTime(NOW - 60_000, NOW), '1m ago')
+})
+
+test('handles midnight edge case: recent mtime crossing calendar day', () => {
+  // now = June 15 at 00:02, mtime = June 14 at 23:59 (3 minutes ago, but previous calendar day)
+  const midnightNow = new Date(2025, 5, 15, 0, 2, 0).getTime()
+  const justBefore = new Date(2025, 5, 14, 23, 59, 0).getTime()
+  // Only 3 minutes ago, so should show "3m ago" (not "Yesterday")
+  assert.equal(formatRelativeTime(justBefore, midnightNow), '3m ago')
+})
