@@ -7,6 +7,7 @@ export class ResizeController {
   private _resizeHandle: HTMLDivElement;
   private _resultsPanel: HTMLDivElement;
   private _resultsPanelHeight: number;
+  private _onMouseDown: ((e: MouseEvent) => void) | null = null;
 
   constructor(resizeHandle: HTMLDivElement, resultsPanel: HTMLDivElement) {
     this._resizeHandle = resizeHandle;
@@ -21,7 +22,7 @@ export class ResizeController {
     let startY = 0;
     let startH = 0;
 
-    this._resizeHandle.addEventListener('mousedown', (e) => {
+    this._onMouseDown = (e: MouseEvent) => {
       startY = e.clientY;
       startH = this._resultsPanelHeight;
       this._resizeHandle.classList.add('dragging');
@@ -42,9 +43,17 @@ export class ResizeController {
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
       e.preventDefault();
-    });
+    };
 
+    this._resizeHandle.addEventListener('mousedown', this._onMouseDown);
     this._apply();
+  }
+
+  destroy(): void {
+    if (this._onMouseDown) {
+      this._resizeHandle.removeEventListener('mousedown', this._onMouseDown);
+      this._onMouseDown = null;
+    }
   }
 
   private _apply(): void {

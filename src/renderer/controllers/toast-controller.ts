@@ -20,4 +20,9 @@ export class ToastController {
       this._toastHideTimer = setTimeout(() => { this._toast.hidden = true; }, 150);
     }, 2000);
   }
+
+  destroy(): void {
+    if (this._toastTimer) clearTimeout(this._toastTimer);
+    if (this._toastHideTimer) clearTimeout(this._toastHideTimer);
+  }
 }
