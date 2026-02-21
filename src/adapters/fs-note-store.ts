@@ -28,7 +28,8 @@ export class FsNoteStore implements NoteStore {
       throw new Error(`Invalid note title: "${title}"`);
     }
     const resolved = path.resolve(this._vaultPath, `${title}.md`);
-    if (!resolved.startsWith(this._vaultPath + path.sep)) {
+    const relative = path.relative(this._vaultPath, resolved);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
       throw new Error(`Invalid note title: "${title}"`);
     }
   }
