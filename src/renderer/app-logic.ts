@@ -2,6 +2,10 @@
 
 import type { NoteInfo } from './window'
 
+export type EnterDecision =
+  | { action: 'open'; title: string }
+  | { action: 'create'; title: string };
+
 /**
  * Decides what to do when Enter is pressed in the search bar.
  * Returns {action: 'open', title} when results exist, {action: 'create', title}
@@ -11,7 +15,7 @@ export function handleEnterDecision(
   filteredNotes: NoteInfo[],
   selectedIndex: number,
   query: string,
-): { action: string; title: string } | null {
+): EnterDecision | null {
   const q = query.trim();
   if (!q) return null;
 
