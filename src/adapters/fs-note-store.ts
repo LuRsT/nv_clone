@@ -40,12 +40,7 @@ export class FsNoteStore implements NoteStore {
   }
 
   async list(): Promise<NoteInfo[]> {
-    let files: string[];
-    try {
-      files = await fs.readdir(this._vaultPath);
-    } catch {
-      return [];
-    }
+    const files = await fs.readdir(this._vaultPath);
 
     const results = await Promise.all(
       files
