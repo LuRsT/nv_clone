@@ -16,7 +16,7 @@ NOTE: Apart from this line in the README.md I (Gil) didn't touch the code in thi
 
 ## Requirements
 
-- Node.js ≥ 18
+- Node.js ≥ 22
 - npm
 - A running display server (X11 or Wayland)
 
@@ -56,9 +56,11 @@ On first launch you will be prompted to choose a vault folder — the directory 
 |-----|---------|--------|
 | Typing | Search bar | Filter notes live |
 | `↓` / `↑` | Search bar | Move selection in results list |
+| `Ctrl+J` / `Ctrl+K` | Anywhere | Move selection down / up |
 | `Enter` | Search bar (has results) | Open selected note in editor |
 | `Enter` | Search bar (no results) | Create new note named after the query |
-| `Escape` | Search bar | Clear the search query |
+| `Tab` | Search bar | Focus editor |
+| `Escape` | Search bar | Clear query (or cancel rename) |
 | `Escape` | Editor | Return to search bar |
 | `Ctrl+Delete` / `Ctrl+D` | Anywhere | Delete the current note (no undo) |
 | `Ctrl+R` | Anywhere | Rename the current note |
@@ -81,7 +83,7 @@ Build a standalone app you can run without Node.js:
 npm run package
 ```
 
-This produces an executable in `release/linux-unpacked/` (Linux), or a `.dmg` (macOS) / installer (Windows).
+This produces an `.AppImage` (Linux), `.dmg` (macOS), or installer (Windows) in the `release/` directory.
 
 ## Changing the vault
 
@@ -105,7 +107,7 @@ The `v*` tag push triggers the [release workflow](.github/workflows/release.yml)
 ```bash
 npm test           # Run unit tests
 npm run typecheck  # Type-check without emitting
-just test          # Alternative: run tests via Justfile
+npm run lint       # Run ESLint
 ```
 
 Toggle developer tools from inside the app: **View → Toggle Developer Tools** (or `Ctrl+Shift+I`).
