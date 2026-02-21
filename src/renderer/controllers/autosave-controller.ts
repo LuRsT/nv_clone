@@ -35,7 +35,7 @@ export class AutosaveController {
     try {
       await this._notes.write(title, body);
     } catch (err) {
-      this._toast.show(`Failed to save: ${(err as Error).message}`);
+      this._toast.show(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 }

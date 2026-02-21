@@ -233,7 +233,7 @@ class NVApp {
     try {
       await this._ports.notes.write(title, '');
     } catch (err) {
-      this._toast.show(`Failed to create note: ${(err as Error).message}`);
+      this._toast.show(`Failed to create note: ${err instanceof Error ? err.message : String(err)}`);
       this._creating = false;
       return;
     }
@@ -255,7 +255,7 @@ class NVApp {
     try {
       await this._ports.notes.delete(deleted);
     } catch (err) {
-      this._toast.show(`Failed to delete: ${(err as Error).message}`);
+      this._toast.show(`Failed to delete: ${err instanceof Error ? err.message : String(err)}`);
       return;
     }
     this._currentTitle = null;

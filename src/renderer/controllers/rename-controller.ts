@@ -44,7 +44,7 @@ export class RenameController {
       try {
         await this._notes.rename(currentTitle, newTitle);
       } catch (err) {
-        this._toast.show(`Failed to rename: ${(err as Error).message}`);
+        this._toast.show(`Failed to rename: ${err instanceof Error ? err.message : String(err)}`);
         return null;
       }
     }
