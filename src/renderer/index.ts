@@ -164,6 +164,13 @@ class NVApp {
       titleEl.className = 'note-title';
       titleEl.innerHTML = highlightMatches(note.title, query);
 
+      if (note.excerpt) {
+        const excerptEl = document.createElement('span');
+        excerptEl.className = 'note-excerpt';
+        excerptEl.innerHTML = highlightMatches(note.excerpt, query);
+        titleEl.appendChild(excerptEl);
+      }
+
       const timeEl = document.createElement('div');
       timeEl.className = 'note-time';
       timeEl.textContent = formatRelativeTime(note.mtime);
@@ -171,13 +178,8 @@ class NVApp {
       headerEl.appendChild(titleEl);
       headerEl.appendChild(timeEl);
 
-      const excerptEl = document.createElement('div');
-      excerptEl.className = 'note-excerpt';
-      excerptEl.innerHTML = highlightMatches(note.excerpt, query);
-
       li.setAttribute('tabindex', '-1');
       li.appendChild(headerEl);
-      li.appendChild(excerptEl);
       this._resultsList.appendChild(li);
     });
 
