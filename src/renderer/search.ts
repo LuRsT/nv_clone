@@ -1,11 +1,18 @@
 import type { NoteInfo } from './window'
 
+export type SortOrder = 'mtime' | 'title';
+
+export function sortNotes(notes: NoteInfo[], order: SortOrder): NoteInfo[] {
+  if (order === 'title') return [...notes].sort((a, b) => a.title.localeCompare(b.title));
+  return [...notes].sort((a, b) => b.mtime - a.mtime);
+}
+
 /**
  * filterNotes — pure function, no side effects, no browser globals.
  */
 export function filterNotes(notes: NoteInfo[], query: string): NoteInfo[] {
   const q = query.trim().toLowerCase();
-  if (!q) return notes; // already sorted by mtime desc from main process
+  if (!q) return notes; // sorting is applied by sortNotes after filtering
 
   return notes.filter((note) => {
     return (

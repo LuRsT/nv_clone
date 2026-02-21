@@ -108,13 +108,30 @@ html, body {
   background: var(--accent-bg);
 }
 
+/* Timestamp row in list items */
+.note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
 .note-title {
+  flex: 1;
+  min-width: 0;
   font-weight: 500;
   font-size: 0.93em;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.note-time {
+  font-size: 0.75em;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .note-excerpt {

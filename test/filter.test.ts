@@ -2,7 +2,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { filterNotes } from '../src/renderer/search'
+import { filterNotes, sortNotes } from '../src/renderer/search'
 import type { NoteInfo } from '../src/renderer/window'
 
 const NOTES: NoteInfo[] = [
@@ -60,4 +60,31 @@ test('search is case-insensitive', () => {
   const result = filterNotes(NOTES, 'SHOPPING')
   assert.equal(result.length, 1)
   assert.equal(result[0].title, 'Shopping list')
+})
+
+// ── sortNotes ─────────────────────────────────────────────────────────────────
+
+test('sortNotes by mtime returns notes newest-first', () => {
+  const result = sortNotes(NOTES, 'mtime')
+  assert.equal(result[0].mtime, 3000)
+  assert.equal(result[1].mtime, 2000)
+  assert.equal(result[2].mtime, 1000)
+})
+
+test('sortNotes by title returns notes in alphabetical order', () => {
+  const result = sortNotes(NOTES, 'title')
+  assert.equal(result[0].title, 'Ideas')
+  assert.equal(result[1].title, 'Meeting notes')
+  assert.equal(result[2].title, 'Shopping list')
+})
+
+test('sortNotes does not mutate the original array', () => {
+  const original = [...NOTES]
+  sortNotes(NOTES, 'title')
+  assert.deepEqual(NOTES, original)
+})
+
+test('sortNotes on empty array returns empty array', () => {
+  assert.deepEqual(sortNotes([], 'mtime'), [])
+  assert.deepEqual(sortNotes([], 'title'), [])
 })

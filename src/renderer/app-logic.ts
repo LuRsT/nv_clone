@@ -82,6 +82,39 @@ export function deleteWordBackward(
 }
 
 /**
+ * Formats a modification timestamp as a human-readable relative time string.
+ * Uses calendar-day comparison for Yesterday/weekday labels.
+ */
+export function formatRelativeTime(mtime: number, now = Date.now()): string {
+  const diffMs = now - mtime;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+
+  if (diffMin < 1) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  const mtimeDate = new Date(mtime);
+  const nowDate = new Date(now);
+
+  const todayStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()).getTime();
+  const yesterdayStart = todayStart - 86400000;
+  const weekAgoStart = todayStart - 6 * 86400000;
+
+  if (mtime >= yesterdayStart && mtime < todayStart) return 'Yesterday';
+
+  if (mtime >= weekAgoStart) {
+    return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][mtimeDate.getDay()];
+  }
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[mtimeDate.getMonth()];
+  const day = mtimeDate.getDate();
+  if (mtimeDate.getFullYear() === nowDate.getFullYear()) return `${month} ${day}`;
+  return `${month} ${day}, ${mtimeDate.getFullYear()}`;
+}
+
+/**
  * Counts the number of words in a text string.
  * Words are sequences of non-whitespace characters separated by whitespace.
  */

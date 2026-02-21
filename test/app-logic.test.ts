@@ -10,6 +10,7 @@ import {
   deleteWordBackward,
   validateRename,
   countWords,
+  formatRelativeTime,
 } from '../src/renderer/app-logic'
 import type { NoteInfo } from '../src/renderer/window'
 
@@ -186,4 +187,42 @@ test('handles multiple spaces between words', () => {
 
 test('counts words with leading and trailing whitespace', () => {
   assert.equal(countWords('  hello world  '), 2)
+})
+
+// ── formatRelativeTime ─────────────────────────────────────────────────────────
+
+// Fixed reference: June 15, 2025 12:00 local time
+const NOW = new Date(2025, 5, 15, 12, 0, 0).getTime()
+
+test('returns "Just now" for timestamps less than one minute ago', () => {
+  assert.equal(formatRelativeTime(NOW - 30_000, NOW), 'Just now')
+})
+
+test('returns "Xm ago" for timestamps 1–59 minutes ago', () => {
+  assert.equal(formatRelativeTime(NOW - 5 * 60_000, NOW), '5m ago')
+})
+
+test('returns "Xh ago" for timestamps 1–23 hours ago', () => {
+  assert.equal(formatRelativeTime(NOW - 3 * 3_600_000, NOW), '3h ago')
+})
+
+test('returns "Yesterday" for timestamps from the previous calendar day', () => {
+  // 25 hours before noon = June 14, 2025 at 11:00 AM
+  assert.equal(formatRelativeTime(NOW - 25 * 3_600_000, NOW), 'Yesterday')
+})
+
+test('returns weekday name for timestamps 2–6 calendar days ago', () => {
+  // 3 days before June 15 noon = June 12 noon = Thursday
+  const result = formatRelativeTime(NOW - 3 * 24 * 3_600_000, NOW)
+  assert.equal(result, 'Thu')
+})
+
+test('returns "Mon DD" for same-year timestamps older than 6 days', () => {
+  const march5 = new Date(2025, 2, 5, 10, 0, 0).getTime()
+  assert.equal(formatRelativeTime(march5, NOW), 'Mar 5')
+})
+
+test('returns "Mon DD, YYYY" for timestamps from a previous year', () => {
+  const march5_2023 = new Date(2023, 2, 5, 10, 0, 0).getTime()
+  assert.equal(formatRelativeTime(march5_2023, NOW), 'Mar 5, 2023')
 })

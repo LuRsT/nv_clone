@@ -6,6 +6,7 @@ import {
   restoreSelectionIndex,
   deleteWordBackward,
   countWords,
+  formatRelativeTime,
 } from './app-logic'
 import type { NoteInfo } from './window'
 import type { NoteRepository, VaultService, ThemeService } from './ports'
@@ -156,16 +157,26 @@ class NVApp {
       const li = document.createElement('li');
       li.dataset.title = note.title;
 
+      const headerEl = document.createElement('div');
+      headerEl.className = 'note-header';
+
       const titleEl = document.createElement('div');
       titleEl.className = 'note-title';
       titleEl.innerHTML = highlightMatches(note.title, query);
+
+      const timeEl = document.createElement('div');
+      timeEl.className = 'note-time';
+      timeEl.textContent = formatRelativeTime(note.mtime);
+
+      headerEl.appendChild(titleEl);
+      headerEl.appendChild(timeEl);
 
       const excerptEl = document.createElement('div');
       excerptEl.className = 'note-excerpt';
       excerptEl.innerHTML = highlightMatches(note.excerpt, query);
 
       li.setAttribute('tabindex', '-1');
-      li.appendChild(titleEl);
+      li.appendChild(headerEl);
       li.appendChild(excerptEl);
       this._resultsList.appendChild(li);
     });
@@ -276,6 +287,10 @@ class NVApp {
         case 'Enter':
           e.preventDefault();
           if (this._rename.isActive) { this._handleRenameCommit(); } else { this._handleEnter(); }
+          break;
+        case 'Tab':
+          e.preventDefault();
+          this._editor.focus();
           break;
         case 'Escape':
           e.preventDefault();
