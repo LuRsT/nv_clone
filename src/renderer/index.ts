@@ -289,8 +289,10 @@ class NVApp {
           if (this._rename.isActive) { this._handleRenameCommit(); } else { this._handleEnter(); }
           break;
         case 'Tab':
-          e.preventDefault();
-          this._editor.focus();
+          if (this._currentTitle) {
+            e.preventDefault();
+            this._editor.focus();
+          }
           break;
         case 'Escape':
           e.preventDefault();
