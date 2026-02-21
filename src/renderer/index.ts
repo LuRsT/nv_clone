@@ -137,7 +137,7 @@ class NVApp {
   // ── Data ──────────────────────────────────────────────────────────────────
 
   private async _loadNotes(): Promise<void> {
-    this._notes = await this._ports.notes.list();
+    this._notes = (await this._ports.notes.list()) ?? [];
     this._renderResults(this._searchInput.value);
   }
 

@@ -1,7 +1,7 @@
 import type { NoteInfo } from './window';
 
 export interface NoteRepository {
-  list(): Promise<NoteInfo[]>;
+  list(): Promise<NoteInfo[] | null>;
   read(title: string): Promise<string>;
   write(title: string, body: string): Promise<void>;
   delete(title: string): Promise<void>;

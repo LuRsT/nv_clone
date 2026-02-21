@@ -8,6 +8,7 @@ import {
 } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 import chokidar from 'chokidar';
 import { FsNoteStore } from './adapters/fs-note-store';
 
@@ -75,6 +76,9 @@ function _startWatcher(): void {
   _watcher.on('add', _push);
   _watcher.on('change', _push);
   _watcher.on('unlink', _push);
+  _watcher.on('error', (err) => {
+    console.error('File watcher error:', err);
+  });
 }
 
 // ── IPC handlers ──────────────────────────────────────────────────────────────
@@ -89,15 +93,23 @@ ipcMain.handle('vault:select', async () => {
   });
   if (result.canceled || result.filePaths.length === 0) return null;
 
-  _setVault(result.filePaths[0]);
+  const selected = result.filePaths[0];
+  try {
+    await fsPromises.access(selected, fs.constants.R_OK | fs.constants.W_OK);
+  } catch {
+    return null;
+  }
+
+  _setVault(selected);
   _writeConfig({ vaultPath: _vaultPath as string });
   _startWatcher();
   return _vaultPath;
 });
 
 ipcMain.handle('notes:list', async () => {
+  if (!_noteStore) return null;
   try {
-    return (await _noteStore?.list()) ?? [];
+    return await _noteStore.list();
   } catch {
     return [];
   }
@@ -156,7 +168,13 @@ function _buildMenu(): void {
               properties: ['openDirectory', 'createDirectory'],
             });
             if (!result.canceled && result.filePaths.length > 0) {
-              _setVault(result.filePaths[0]);
+              const selected = result.filePaths[0];
+              try {
+                await fsPromises.access(selected, fs.constants.R_OK | fs.constants.W_OK);
+              } catch {
+                return;
+              }
+              _setVault(selected);
               _writeConfig({ vaultPath: _vaultPath as string });
               _startWatcher();
               if (_noteStore && !_mainWindow.isDestroyed()) {

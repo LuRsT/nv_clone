@@ -3,7 +3,7 @@ export interface NoteInfo { title: string; excerpt: string; body: string; mtime:
 export interface WindowApi {
   selectVault(): Promise<string | null>
   getVaultPath(): Promise<string | null>
-  listNotes(): Promise<NoteInfo[]>
+  listNotes(): Promise<NoteInfo[] | null>
   readNote(title: string): Promise<string>
   writeNote(title: string, body: string): Promise<void>
   deleteNote(title: string): Promise<void>

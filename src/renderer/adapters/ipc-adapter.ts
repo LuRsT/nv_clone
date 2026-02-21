@@ -2,7 +2,7 @@ import type { NoteInfo } from '../window';
 import type { NoteRepository, VaultService, ThemeService } from '../ports';
 
 export class IpcNoteRepository implements NoteRepository {
-  list(): Promise<NoteInfo[]> {
+  list(): Promise<NoteInfo[] | null> {
     return window.api.listNotes();
   }
 
