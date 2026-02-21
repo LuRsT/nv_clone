@@ -4,17 +4,9 @@ A keyboard-first note-taking app inspired by [Notational Velocity](https://notat
 
 NOTE: Apart from this line in the README.md I (Gil) didn't touch the code in this repo, this project is an experience in getting Claude to build an app in a language I don't know in an environment I have no experience with.
 
-```
-┌─────────────────────────────────┐
-│         Search Bar              │
-├─────────────────────────────────┤
-│         Results List            │
-├─────────────────────────────────┤
-│         Editor                  │
-└─────────────────────────────────┘
-```
+<img width="938" height="730" alt="2026-02-21-192358_938x730_scrot" src="https://github.com/user-attachments/assets/a0740b29-479b-4a95-a7cb-5e4c1145734b" />
 
-## Requirements
+## Requirements:
 
 - Node.js ≥ 22
 - npm
