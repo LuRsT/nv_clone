@@ -126,11 +126,7 @@ pub fn notes_read(title: String, state: State<'_, AppState>) -> Result<String, S
 }
 
 #[tauri::command]
-pub fn notes_write(
-    title: String,
-    body: String,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub fn notes_write(title: String, body: String, state: State<'_, AppState>) -> Result<(), String> {
     let vault = get_vault(&state)?;
     let path = note_path(&vault, &title)?;
     std::fs::write(&path, body.as_bytes()).map_err(|e| format!("Cannot write note: {e}"))
@@ -141,7 +137,9 @@ pub fn notes_delete(title: String, state: State<'_, AppState>) -> Result<(), Str
     let vault = get_vault(&state)?;
     let path = note_path(&vault, &title)?;
     match std::fs::remove_file(&path) {
-        Ok(()) | Err(_) => Ok(()), // already gone is fine
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(format!("Cannot delete note: {e}")),
     }
 }
 
@@ -328,7 +326,10 @@ mod tests {
 
     #[test]
     fn first_line_skips_blank_lines() {
-        assert_eq!(first_non_empty_line("\n\n  actual line  \nmore"), "actual line");
+        assert_eq!(
+            first_non_empty_line("\n\n  actual line  \nmore"),
+            "actual line"
+        );
     }
 
     #[test]
