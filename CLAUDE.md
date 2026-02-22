@@ -4,63 +4,73 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A Notational Velocity clone: a keyboard-first, single-window Electron app for plain-text markdown note-taking. Full spec is in `SPEC.txt`.
+A Notational Velocity clone: a keyboard-first, single-window Tauri app for plain-text markdown note-taking. Full spec is in `SPEC.txt`.
 
 ## Tech Stack
 
-- **Language:** TypeScript (strict mode, ES2020 target)
-- **Runtime:** Electron v40 (Node.js main process + Chromium renderer)
-- **Build:** esbuild via custom `build.js` — compiles main, preload, and renderer bundles to `dist/`
+- **Framework:** Tauri v2 (Rust backend + WebView frontend)
+- **Backend language:** Rust (2021 edition)
+- **Frontend language:** TypeScript (strict mode, ES2020 target)
+- **Build:** Tauri CLI (`tauri dev` / `tauri build`); esbuild via custom `build.js` bundles the renderer
 - **Storage:** Plain `.md` files on disk — no database, no frontmatter
-- **File watching:** chokidar
+- **File watching:** `notify` crate (Rust) with 100ms debounce
 - **Markdown preview:** marked + DOMPurify (XSS sanitization)
-- **Testing:** Node.js native test runner (`node:test`) with tsx
-- **Config persistence:** `app.getPath('userData')/config.json` for vault path
+- **Testing (TS):** Node.js native test runner (`node:test`) with tsx
+- **Testing (Rust):** `cargo test` in `src-tauri/`
+- **Config persistence:** Tauri `app_data_dir()/config.json` for vault path
 
 ## Commands
 
 ```bash
-npm start          # Build + launch Electron app
-npm test           # Run unit tests (tsx --test 'test/**/*.test.ts')
+npm start          # Launch Tauri dev mode (tauri dev)
+npm test           # Run TS unit tests (tsx --test 'test/**/*.test.ts')
 npm run typecheck  # Type-check without emitting (tsc --noEmit)
-npm run build      # Build only (node build.js)
+npm run build      # Production build (tauri build)
+cd src-tauri && cargo test   # Run Rust unit tests
+cd src-tauri && cargo check  # Type-check Rust without building
 ```
 
 ## Architecture
 
-### Hexagonal Architecture (Ports & Adapters)
+### Backend (`src-tauri/src/`)
 
-The codebase uses a ports/adapters pattern to separate business logic from infrastructure:
+Rust backend managed by Tauri:
 
-**Main process (`src/main.ts`):**
-- Port: `NoteStore` interface (`src/ports/note-store.ts`)
-- Adapter: `FsNoteStore` (`src/adapters/fs-note-store.ts`) — file I/O with path traversal validation
-- Registers IPC handlers, manages chokidar file watcher, Electron lifecycle, native menu, theme subscription
+- **Entry:** `lib.rs` — Tauri builder setup, state management (`AppState`, `WatcherState`), command registration
+- **Commands:** `commands/vault.rs` (vault get/select/config), `commands/notes.rs` (CRUD + listing)
+- **Menu:** `menu.rs` — native application menu (File, Edit, View), "Change Vault…" handler
+- **Watcher:** `watcher.rs` — `notify`-based file watcher with debounce, emits `notes:changed` events
+- **State:** `AppState` (vault path behind `Mutex`), `WatcherState` (watcher handle behind `Mutex`)
 
-**Preload (`src/preload.ts`):**
-- `contextBridge` exposes `window.api` — typed IPC bridge between main and renderer
+### Frontend (`src/renderer/`)
 
-**Renderer (`src/renderer/`):**
-- Ports: `NoteRepository`, `VaultService`, `ThemeService` (`src/renderer/ports.ts`)
-- Adapters: `IpcNoteRepository`, `IpcVaultService`, `IpcThemeService` (`src/renderer/adapters/ipc-adapter.ts`)
-- Entry point: `src/renderer/index.ts` — creates `NVApp` with injected port implementations
-- Pure logic: `app-logic.ts` (no DOM), `search.ts` (filtering)
-- Controllers (extracted from NVApp): `toast`, `autosave`, `resize`, `font-size`, `preview`, `rename` — all in `src/renderer/controllers/`
+TypeScript frontend using ports/adapters pattern:
 
-### IPC Channels
+- **Ports:** `NoteRepository`, `VaultService`, `ThemeService` (`src/renderer/ports.ts`)
+- **Adapters:** `TauriNoteRepository`, `TauriVaultService`, `TauriThemeService` (`src/renderer/adapters/tauri-adapter.ts`) — Tauri `invoke()` + `listen()` bridge
+- **Entry point:** `src/renderer/index.ts` — creates `NVApp` with injected port implementations
+- **Pure logic:** `app-logic.ts` (no DOM), `search.ts` (filtering)
+- **Controllers (extracted from NVApp):** `toast`, `autosave`, `resize`, `font-size`, `preview`, `rename`, `help` — all in `src/renderer/controllers/`
 
-| Channel | Direction | Purpose |
-|---------|-----------|---------|
-| `vault:get` | renderer → main | Get current vault path |
-| `vault:select` | renderer → main | Open folder picker, set vault |
-| `notes:list` | renderer → main | List all notes (title, excerpt, body, mtime) |
-| `notes:read` | renderer → main | Read note body by title |
-| `notes:write` | renderer → main | Write note body to disk |
-| `notes:rename` | renderer → main | Rename note file |
-| `notes:delete` | renderer → main | Delete note file |
-| `theme:isDark` | renderer → main | Query OS theme |
-| `notes:changed` | main → renderer | Broadcast: file watcher detected changes |
-| `theme:changed` | main → renderer | Broadcast: OS theme changed |
+### Tauri Commands
+
+| Command | Purpose |
+|---------|---------|
+| `vault_get` | Get current vault path |
+| `vault_select` | Open folder picker, validate, set vault |
+| `notes_list` | List all notes (title, excerpt, body, mtime) |
+| `notes_read` | Read note body by title |
+| `notes_write` | Write note body to disk |
+| `notes_delete` | Delete note file |
+| `notes_rename` | Rename note file |
+
+### Tauri Events
+
+| Event | Direction | Purpose |
+|-------|-----------|---------|
+| `notes:changed` | backend → frontend | File watcher detected changes |
+
+Theme changes are detected via Tauri's `onThemeChanged` window API.
 
 ### UI Layout
 
@@ -77,15 +87,22 @@ Three vertical panels in a single window (no sidebars, no toolbar):
 - **Rename note**: Ctrl+R → search bar becomes rename input → Enter confirms
 - **Font size**: Ctrl+/Ctrl- adjusts, persisted in localStorage
 - **Panel resize**: Draggable handle between results and editor, height persisted
-- **File watching**: External changes reflected live in the UI
-- **Theming**: Follows OS appearance via `nativeTheme` (light/dark)
+- **File watching**: External changes reflected live via `notify` watcher
+- **Theming**: Follows OS appearance via Tauri's window theme API (light/dark)
 
 ### Testing
 
-Unit tests cover pure logic only (no integration/E2E):
+**TypeScript** — unit tests cover pure logic only (no integration/E2E):
 - `test/filter.test.ts` — `filterNotes()`
 - `test/highlight.test.ts` — search highlighting
 - `test/navigation.test.ts` — list navigation
 - `test/app-logic.test.ts` — `handleEnterDecision()`, `restoreSelectionIndex()`, `adjustFontSize()`, `deleteWordBackward()`, `validateRename()`
+- `test/autosave.test.ts` — autosave scheduling
+
+**Rust** — unit tests in `src-tauri/src/commands/notes.rs`:
+- `assert_safe_title` — path traversal validation
+- `list_notes_from_path` — vault listing, sorting, filtering
+- `first_non_empty_line` — excerpt extraction
+- CRUD helpers — note path resolution, write/read/delete/rename
 
 READ: AGENTS.MD

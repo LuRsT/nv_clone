@@ -2,13 +2,13 @@
 
 ## Overview
 
-A minimal, keyboard-first note-taking app built in Electron, inspired by Notational Velocity. Notes live as plain `.md` files in a user-chosen folder. The entire experience is built around a single three-panel window: search bar, results list, editor.
+A minimal, keyboard-first note-taking app built with Tauri, inspired by Notational Velocity. Notes live as plain `.md` files in a user-chosen folder. The entire experience is built around a single three-panel window: search bar, results list, editor.
 
 ---
 
 ## Tech Stack
 
-- **Framework:** Electron
+- **Framework:** Tauri v2 (Rust backend, WebView frontend)
 - **Storage:** Plain `.md` files on disk (no database)
 - **Vault:** User-selected folder (e.g. `~/Notes`), stored in app config and remembered across sessions
 
@@ -39,7 +39,7 @@ No sidebars, no toolbar, no menubar clutter. The window should be resizable and 
 ## Vault Selection
 
 - On first launch, prompt the user to choose a folder via the native OS folder picker. This becomes their vault.
-- The vault path is persisted in Electron's `app.getPath('userData')` config.
+- The vault path is persisted in Tauri's `app_data_dir()/config.json`.
 - On subsequent launches, open directly to the vault with no splash screen.
 - A "Change Vault" option is available in the application menu (macOS menu bar / system tray menu).
 
@@ -52,7 +52,7 @@ No sidebars, no toolbar, no menubar clutter. The window should be resizable and 
 - The **file contents** are the note's **body**.
 - No frontmatter, no metadata files — the filesystem is the source of truth.
 - Subdirectories within the vault are ignored (flat structure only).
-- File changes made externally (another editor, sync tools) are picked up automatically via filesystem watching (`chokidar` or Electron's `fs.watch`).
+- File changes made externally (another editor, sync tools) are picked up automatically via the `notify` file watcher.
 
 ---
 
@@ -115,7 +115,7 @@ No sidebars, no toolbar, no menubar clutter. The window should be resizable and 
 
 ## Theming
 
-- Follows the **OS system appearance** (light or dark) automatically using Electron's `nativeTheme`.
+- Follows the **OS system appearance** (light or dark) automatically using Tauri's window theme API.
 - Light mode: white/off-white background, dark text.
 - Dark mode: dark gray background, light text.
 - Accent color for selection highlight should use the OS accent color where possible.
@@ -153,7 +153,7 @@ Minimal menu. At minimum:
 
 ## File Watching
 
-- The app watches the vault folder for external changes using `chokidar`.
+- The app watches the vault folder for external changes using the `notify` crate with debouncing.
 - New files added externally appear in the list immediately.
 - Files modified externally refresh in the editor if currently open.
 - Files deleted externally are removed from the list; if open in the editor, the editor clears.
