@@ -5,6 +5,8 @@ import type { NoteInfo } from '../window';
 import type { NoteRepository, VaultService, ThemeService } from '../ports';
 
 export class TauriNoteRepository implements NoteRepository {
+  private _unlistenNotes?: () => void;
+
   list(): Promise<NoteInfo[] | null> {
     return invoke<NoteInfo[]>('notes_list');
   }
@@ -26,7 +28,10 @@ export class TauriNoteRepository implements NoteRepository {
   }
 
   onChanged(cb: (notes: NoteInfo[]) => void): void {
-    listen<NoteInfo[]>('notes:changed', (event) => cb(event.payload));
+    this._unlistenNotes?.();
+    listen<NoteInfo[]>('notes:changed', (event) => cb(event.payload)).then(
+      (unlisten) => { this._unlistenNotes = unlisten; }
+    );
   }
 }
 
@@ -41,12 +46,17 @@ export class TauriVaultService implements VaultService {
 }
 
 export class TauriThemeService implements ThemeService {
+  private _unlistenTheme?: () => void;
+
   async isDark(): Promise<boolean> {
     const theme = await getCurrentWindow().theme();
     return theme === 'dark';
   }
 
   onChanged(cb: (isDark: boolean) => void): void {
-    getCurrentWindow().onThemeChanged((event) => cb(event.payload === 'dark'));
+    this._unlistenTheme?.();
+    getCurrentWindow().onThemeChanged((event) => cb(event.payload === 'dark')).then(
+      (unlisten) => { this._unlistenTheme = unlisten; }
+    );
   }
 }
