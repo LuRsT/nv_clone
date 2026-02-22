@@ -95,6 +95,7 @@ class NVApp {
   private _filtered: NoteInfo[] = [];
   private _selectedIndex = -1;
   private _currentTitle: string | null = null;
+  private _currentMtime = 0;
   private _creating = false;
   private _searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -216,7 +217,23 @@ class NVApp {
       this._autosave.cancel();
     }
     this._currentTitle = title;
+    const note = this._notes.find((n) => n.title === title);
+    this._currentMtime = note?.mtime ?? 0;
     const body = await this._ports.notes.read(title);
+    this._editor.value = body;
+    this._updateWordCount();
+    if (this._preview.isActive) this._preview.render();
+  }
+
+  private async _reloadIfExternallyModified(): Promise<void> {
+    if (!this._currentTitle) return;
+    const note = this._notes.find((n) => n.title === this._currentTitle);
+    if (!note) return;
+    if (note.mtime <= this._currentMtime) return;
+    // External modification detected — cancel stale autosave and reload.
+    this._autosave.cancel();
+    this._currentMtime = note.mtime;
+    const body = await this._ports.notes.read(this._currentTitle);
     this._editor.value = body;
     this._updateWordCount();
     if (this._preview.isActive) this._preview.render();
@@ -291,6 +308,7 @@ class NVApp {
       this._notes = notes;
       this._renderResults(this._searchInput.value);
       this._highlightSelected(true);
+      this._reloadIfExternallyModified();
     });
   }
 
