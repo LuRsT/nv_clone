@@ -15,11 +15,13 @@ const SHORTCUTS: [string, string][] = [
 ];
 
 export class HelpController {
-  private _overlay: HTMLDivElement;
+  private _overlay: HTMLDivElement | null = null;
   private _visible = false;
-  private _onClick: (e: MouseEvent) => void;
+  private _onClick: ((e: MouseEvent) => void) | null = null;
 
-  constructor() {
+  private _ensureOverlay(): HTMLDivElement {
+    if (this._overlay) return this._overlay;
+
     this._overlay = document.createElement('div');
     this._overlay.id = 'help-overlay';
 
@@ -50,17 +52,21 @@ export class HelpController {
       if (e.target === this._overlay) this.toggle();
     };
     this._overlay.addEventListener('click', this._onClick);
+
+    return this._overlay;
   }
 
   destroy(): void {
-    this._overlay.removeEventListener('click', this._onClick);
+    if (!this._overlay) return;
+    if (this._onClick) this._overlay.removeEventListener('click', this._onClick);
     this._overlay.remove();
+    this._overlay = null;
   }
 
   get isVisible(): boolean { return this._visible; }
 
   toggle(): void {
     this._visible = !this._visible;
-    this._overlay.classList.toggle('visible', this._visible);
+    this._ensureOverlay().classList.toggle('visible', this._visible);
   }
 }
