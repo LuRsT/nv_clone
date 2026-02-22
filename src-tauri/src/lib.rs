@@ -1,4 +1,5 @@
 mod commands;
+mod menu;
 mod watcher;
 
 use std::path::PathBuf;
@@ -28,6 +29,7 @@ pub fn run() {
                 *app.state::<AppState>().vault_path.lock().unwrap() = Some(vault.clone());
                 watcher::start(app.handle(), vault);
             }
+            menu::build(app)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

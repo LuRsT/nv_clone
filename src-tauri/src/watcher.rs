@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use notify::{RecursiveMode, Watcher};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 use crate::{AppState, WatcherState};
 
@@ -13,7 +13,7 @@ const DEBOUNCE: Duration = Duration::from_millis(100);
 ///
 /// Drops any previously running watcher stored in `WatcherState`, which
 /// signals the old debounce thread to exit via the dropped channel sender.
-pub fn start(app: &AppHandle, vault_path: PathBuf) {
+pub fn start<R: Runtime>(app: &AppHandle<R>, vault_path: PathBuf) {
     let (tx, rx) = mpsc::channel::<notify::Result<notify::Event>>();
 
     let mut watcher = match notify::recommended_watcher(move |evt| {
@@ -41,9 +41,9 @@ pub fn start(app: &AppHandle, vault_path: PathBuf) {
 
 /// Reads events from `rx`, debounces them over `DEBOUNCE`, then emits a
 /// `notes:changed` Tauri event with the refreshed note list.
-fn debounce_loop(
+fn debounce_loop<R: Runtime>(
     rx: mpsc::Receiver<notify::Result<notify::Event>>,
-    app: AppHandle,
+    app: AppHandle<R>,
     vault_path: PathBuf,
 ) {
     let mut pending = false;
@@ -87,7 +87,7 @@ fn debounce_loop(
     }
 }
 
-fn emit_changed(app: &AppHandle, vault_path: &PathBuf) {
+fn emit_changed<R: Runtime>(app: &AppHandle<R>, vault_path: &PathBuf) {
     // Re-use the notes_list logic by reading AppState from the app handle.
     let app_state = app.state::<AppState>();
     let vault_guard = app_state.vault_path.lock().unwrap();

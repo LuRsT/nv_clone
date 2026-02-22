@@ -1,15 +1,14 @@
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::AppState;
 
-
-fn config_path(app: &AppHandle) -> Option<PathBuf> {
+fn config_path<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
     app.path().app_data_dir().ok().map(|d| d.join("config.json"))
 }
 
-pub fn write_config(app: &AppHandle, vault_path: &PathBuf) {
+pub fn write_config<R: Runtime>(app: &AppHandle<R>, vault_path: &PathBuf) {
     if let Some(cfg) = config_path(app) {
         if let Some(parent) = cfg.parent() {
             let _ = std::fs::create_dir_all(parent);
@@ -19,9 +18,10 @@ pub fn write_config(app: &AppHandle, vault_path: &PathBuf) {
     }
 }
 
-pub fn read_config_vault(app: &AppHandle) -> Option<PathBuf> {
+pub fn read_config_vault<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
     let cfg = config_path(app)?;
-    let json: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(cfg).ok()?).ok()?;
+    let json: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(cfg).ok()?).ok()?;
     json.get("vaultPath")?.as_str().map(PathBuf::from)
 }
 
