@@ -1,12 +1,25 @@
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
+import type { marked as markedT } from 'marked'
+import type DOMPurifyT from 'dompurify'
 
-marked.use({
-  async: false,
-  renderer: {
-    html() { return ''; },
-  },
-});
+let markedFn: typeof markedT | null = null;
+let purify: typeof DOMPurifyT | null = null;
+
+async function loadDeps(): Promise<{ marked: typeof markedT; DOMPurify: typeof DOMPurifyT }> {
+  if (markedFn && purify) return { marked: markedFn, DOMPurify: purify };
+  const [markedMod, DOMPurifyMod] = await Promise.all([
+    import('marked'),
+    import('dompurify'),
+  ]);
+  markedMod.marked.use({
+    async: false,
+    renderer: {
+      html() { return ''; },
+    },
+  });
+  markedFn = markedMod.marked;
+  purify = DOMPurifyMod.default;
+  return { marked: markedFn, DOMPurify: purify };
+}
 
 export class PreviewController {
   private _editor: HTMLTextAreaElement;
@@ -34,10 +47,14 @@ export class PreviewController {
   }
 
   render(): void {
-    try {
-      this._preview.innerHTML = DOMPurify.sanitize(marked.parse(this._editor.value || '') as string);
-    } catch {
-      this._preview.textContent = 'Failed to render preview';
-    }
+    loadDeps().then(({ marked, DOMPurify }) => {
+      try {
+        this._preview.innerHTML = DOMPurify.sanitize(marked.parse(this._editor.value || '') as string);
+      } catch {
+        this._preview.textContent = 'Failed to render preview';
+      }
+    }).catch(() => {
+      this._preview.textContent = 'Failed to load preview libraries';
+    });
   }
 }
