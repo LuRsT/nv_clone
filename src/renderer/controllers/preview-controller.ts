@@ -4,7 +4,7 @@ import DOMPurify from 'dompurify'
 marked.use({
   async: false,
   renderer: {
-    html(_token) { return ''; },
+    html() { return ''; },
   },
 });
 
