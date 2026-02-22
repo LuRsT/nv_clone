@@ -96,6 +96,7 @@ class NVApp {
   private _selectedIndex = -1;
   private _currentTitle: string | null = null;
   private _creating = false;
+  private _searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   private _toast: ToastController;
   private _autosave: AutosaveController;
@@ -283,16 +284,14 @@ class NVApp {
   private _bindEvents(): void {
     this._searchInput.addEventListener('input', () => {
       if (this._rename.isActive) return;
-      this._renderResults(this._searchInput.value);
-      this._highlightSelected(true);
+      this._debouncedSearch();
     });
 
     this._searchInput.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'w') {
         e.preventDefault();
         this._applyWordBackspace(this._searchInput);
-        this._renderResults(this._searchInput.value);
-        this._highlightSelected(true);
+        this._runSearch();
         return;
       }
       switch (e.key) {
@@ -402,6 +401,23 @@ class NVApp {
       else if (e.key === 'd') { e.preventDefault(); this._deleteCurrentNote(); }
       else if (e.key === 'r') { e.preventDefault(); if (this._currentTitle) this._rename.enter(this._currentTitle, this._searchInput); }
     });
+  }
+
+  private _debouncedSearch(): void {
+    if (this._searchDebounceTimer !== null) clearTimeout(this._searchDebounceTimer);
+    this._searchDebounceTimer = setTimeout(() => {
+      this._searchDebounceTimer = null;
+      this._runSearch();
+    }, 120);
+  }
+
+  private _runSearch(): void {
+    if (this._searchDebounceTimer !== null) {
+      clearTimeout(this._searchDebounceTimer);
+      this._searchDebounceTimer = null;
+    }
+    this._renderResults(this._searchInput.value);
+    this._highlightSelected(true);
   }
 
   private _moveSelectionInList(delta: number): void {
