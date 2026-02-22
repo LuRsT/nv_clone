@@ -1,0 +1,28 @@
+{
+  "productName": "NV",
+  "version": "0.1.0",
+  "identifier": "com.nv.notes",
+  "build": {
+    "frontendDist": "../dist/renderer"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "NV",
+        "width": 900,
+        "height": 700,
+        "minWidth": 500,
+        "minHeight": 400
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": []
+  }
+}
