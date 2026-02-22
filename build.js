@@ -12,9 +12,9 @@ esbuild.buildSync({
 // Copy static assets — replace dev script tags with single bundle reference
 fs.mkdirSync('dist/renderer', { recursive: true })
 const html = fs.readFileSync('src/renderer/index.html', 'utf8')
-const scriptIdx = html.indexOf('<script')
-if (scriptIdx === -1) throw new Error('build: <script> tag not found in index.html')
-const beforeScripts = html.slice(0, scriptIdx)
-const prodHtml = beforeScripts + '<script src="bundle.js"></script>\n</body>\n</html>\n'
+const prodHtml = html.replace(
+  /\s*<script[\s\S]*?<\/body>/,
+  '\n  <script src="bundle.js"></script>\n</body>'
+)
 fs.writeFileSync('dist/renderer/index.html', prodHtml)
 fs.copyFileSync('src/renderer/style.css', 'dist/renderer/style.css')
