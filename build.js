@@ -1,25 +1,7 @@
 const esbuild = require('esbuild')
 const fs = require('fs')
 
-// Main process
-esbuild.buildSync({
-  entryPoints: ['src/main.ts'],
-  bundle: true,
-  platform: 'node',
-  external: ['electron', 'chokidar'],
-  outfile: 'dist/main.js',
-})
-
-// Preload
-esbuild.buildSync({
-  entryPoints: ['src/preload.ts'],
-  bundle: true,
-  platform: 'node',
-  external: ['electron'],
-  outfile: 'dist/preload.js',
-})
-
-// Renderer bundle (marked is imported directly in index.ts)
+// Renderer bundle
 esbuild.buildSync({
   entryPoints: ['src/renderer/index.ts'],
   bundle: true,
