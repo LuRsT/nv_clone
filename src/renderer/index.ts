@@ -141,7 +141,12 @@ class NVApp {
   // ── Data ──────────────────────────────────────────────────────────────────
 
   private async _loadNotes(): Promise<void> {
-    this._notes = (await this._ports.notes.list()) ?? [];
+    try {
+      this._notes = (await this._ports.notes.list()) ?? [];
+    } catch (err) {
+      this._toast.show(`Failed to load notes: ${err instanceof Error ? err.message : String(err)}`);
+      this._notes = [];
+    }
     this._renderResults(this._searchInput.value);
   }
 
