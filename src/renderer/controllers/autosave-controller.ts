@@ -19,6 +19,7 @@ export class AutosaveController {
   }
 
   async cancelAndFlush(title: string, body: string): Promise<void> {
+    if (!this._saveTimer) return;
     this.cancel();
     await this._save(title, body);
   }

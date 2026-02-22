@@ -70,6 +70,16 @@ test('cancelAndFlush() saves immediately and cancels any pending timer', async (
   assert.equal(notes.writes.length, 1)
 })
 
+test('cancelAndFlush() is a no-op when no save is pending', async () => {
+  const notes = createStubNotes()
+  const autosave = new AutosaveController(notes, createStubToast())
+
+  // No schedule() call — nothing is pending
+  await autosave.cancelAndFlush('note-1', 'unchanged content')
+
+  assert.equal(notes.writes.length, 0)
+})
+
 test('schedule() captures body eagerly, not lazily', async () => {
   const notes = createStubNotes()
   const autosave = new AutosaveController(notes, createStubToast())
