@@ -56,7 +56,7 @@ fn get_vault(state: &State<'_, AppState>) -> Result<PathBuf, String> {
     state
         .vault_path
         .lock()
-        .unwrap()
+        .unwrap_or_else(|e| e.into_inner())
         .clone()
         .ok_or_else(|| "No vault selected".to_string())
 }

@@ -35,7 +35,10 @@ pub fn start<R: Runtime>(app: &AppHandle<R>, vault_path: PathBuf) {
 
     // Replace the old watcher. Dropping the old one closes its sender,
     // which causes the old debounce thread to exit on next recv().
-    *app.state::<WatcherState>().handle.lock().unwrap() = Some(watcher);
+    *app.state::<WatcherState>()
+        .handle
+        .lock()
+        .unwrap_or_else(|e| e.into_inner()) = Some(watcher);
 
     let app = app.clone();
     std::thread::spawn(move || debounce_loop(rx, app, vault_path));
@@ -101,7 +104,10 @@ fn apply_incremental<R: Runtime>(
 ) {
     // Verify the vault hasn't changed.
     let app_state = app.state::<AppState>();
-    let vault_guard = app_state.vault_path.lock().unwrap();
+    let vault_guard = app_state
+        .vault_path
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     let current = match vault_guard.as_ref() {
         Some(p) if p == vault_path => p.clone(),
         _ => return,

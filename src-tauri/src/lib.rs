@@ -26,7 +26,10 @@ pub fn run() {
         .setup(|app| {
             // Restore vault path persisted from a previous session.
             if let Some(vault) = commands::vault::read_config_vault(app.handle()) {
-                *app.state::<AppState>().vault_path.lock().unwrap() = Some(vault.clone());
+                *app.state::<AppState>()
+                    .vault_path
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner()) = Some(vault.clone());
                 watcher::start(app.handle(), vault);
             }
             menu::build(app)?;

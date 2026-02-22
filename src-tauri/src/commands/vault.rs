@@ -24,7 +24,7 @@ pub fn apply_vault<R: Runtime>(app: &AppHandle<R>, state: &AppState, vault_path:
     let _ = std::fs::remove_file(&probe);
 
     write_config(app, vault_path);
-    *state.vault_path.lock().unwrap() = Some(vault_path.clone());
+    *state.vault_path.lock().unwrap_or_else(|e| e.into_inner()) = Some(vault_path.clone());
     crate::watcher::start(app, vault_path.clone());
     true
 }
