@@ -128,7 +128,7 @@ ipcMain.handle(IPC.NOTES_WRITE, async (_event, title: string, body: string) => {
   try {
     await _noteStore?.write(title, body);
   } catch (err) {
-    throw new Error(err instanceof Error ? err.message : 'Failed to write note');
+    throw new Error(err instanceof Error ? err.message : 'Failed to write note', { cause: err });
   }
 });
 
@@ -136,7 +136,7 @@ ipcMain.handle(IPC.NOTES_RENAME, async (_event, oldTitle: string, newTitle: stri
   try {
     await _noteStore?.rename(oldTitle, newTitle);
   } catch (err) {
-    throw new Error(err instanceof Error ? err.message : 'Failed to rename note');
+    throw new Error(err instanceof Error ? err.message : 'Failed to rename note', { cause: err });
   }
 });
 
@@ -144,7 +144,7 @@ ipcMain.handle(IPC.NOTES_DELETE, async (_event, title: string) => {
   try {
     await _noteStore?.delete(title);
   } catch (err) {
-    throw new Error(err instanceof Error ? err.message : 'Failed to delete note');
+    throw new Error(err instanceof Error ? err.message : 'Failed to delete note', { cause: err });
   }
 });
 
