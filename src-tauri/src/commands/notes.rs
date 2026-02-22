@@ -93,11 +93,12 @@ pub fn list_notes_from_path(vault: &Path) -> Result<Vec<NoteInfo>, String> {
             let n = file.read(&mut buf).unwrap_or(0);
             let preview = String::from_utf8_lossy(&buf[..n]);
             let excerpt = first_non_empty_line(&preview).to_string();
+            let body = preview.into_owned();
 
             Some(NoteInfo {
                 title,
                 excerpt,
-                body: String::new(),
+                body,
                 mtime,
             })
         })
@@ -260,7 +261,7 @@ mod tests {
         assert_eq!(notes.len(), 1);
         assert_eq!(notes[0].title, "alpha");
         assert_eq!(notes[0].excerpt, "excerpt line");
-        assert_eq!(notes[0].body, ""); // body is intentionally empty in list
+        assert_eq!(notes[0].body, "\nexcerpt line\nmore text");
     }
 
     #[test]
