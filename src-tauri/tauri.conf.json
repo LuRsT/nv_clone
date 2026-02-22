@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "identifier": "com.nv.notes",
   "build": {
-    "frontendDist": "../dist/renderer"
+    "frontendDist": "../dist/renderer",
+    "beforeDevCommand": "node build.js",
+    "beforeBuildCommand": "node build.js"
   },
   "app": {
     "windows": [
