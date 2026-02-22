@@ -87,4 +87,5 @@ test('schedule() captures body eagerly, not lazily', async () => {
 
   assert.equal(notes.writes.length, 1)
   assert.equal(notes.writes[0].body, 'version-1')
+  assert.equal(mutableBody, 'version-2')
 })
