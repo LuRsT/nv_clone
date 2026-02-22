@@ -353,7 +353,8 @@ class NVApp {
       if (idx === -1) return;
       this._selectedIndex = idx;
       this._highlightSelected(false);
-      this._openNote(this._filtered[idx]?.title);
+      const note = this._filtered[idx];
+      if (note) this._openNote(note.title);
     });
 
     this._resultsList.addEventListener('keydown', (e) => {
