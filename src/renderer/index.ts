@@ -209,7 +209,11 @@ class NVApp {
 
   private async _openNote(title: string): Promise<void> {
     if (this._currentTitle === title) return;
-    this._autosave.cancel();
+    if (this._currentTitle) {
+      await this._autosave.cancelAndFlush(this._currentTitle, this._editor.value);
+    } else {
+      this._autosave.cancel();
+    }
     this._currentTitle = title;
     const body = await this._ports.notes.read(title);
     this._editor.value = body;
