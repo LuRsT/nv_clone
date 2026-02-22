@@ -5,7 +5,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "node build.js",
-    "start": "node build.js && electron .",
+    "start": "node build.js && cargo run --manifest-path src-tauri/Cargo.toml",
     "package": "node build.js && electron-builder",
     "test": "tsx --test 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit",
