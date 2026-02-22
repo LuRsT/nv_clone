@@ -9,6 +9,5 @@
     "skipLibCheck": true,
     "moduleResolution": "node"
   },
-  "include": ["src/**/*", "test/**/*"],
-  "exclude": ["src/main.ts", "src/preload.ts"]
+  "include": ["src/**/*", "test/**/*"]
 }
