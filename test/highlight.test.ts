@@ -45,6 +45,15 @@ test('whitespace-only query returns text unchanged', () => {
   assert.equal(highlightMatches('Hello world', '   '), 'Hello world')
 })
 
+test('highlights consecutive adjacent matches without skipping', () => {
+  // Regression: g-flag regex .test() has stateful lastIndex, causing
+  // alternating true/false on back-to-back matches.
+  assert.equal(
+    highlightMatches('aaa', 'a'),
+    '<mark>a</mark><mark>a</mark><mark>a</mark>',
+  )
+})
+
 test('handles regex special characters in query', () => {
   assert.equal(
     highlightMatches('price is $10.00', '$10.00'),

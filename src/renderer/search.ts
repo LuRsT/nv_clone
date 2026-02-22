@@ -39,10 +39,11 @@ export function highlightMatches(text: string, query: string): string {
   if (!q) return escapeHtml(text);
 
   const re = new RegExp(`(${escapeRegExp(q)})`, 'gi');
+  const lower = q.toLowerCase();
   return text
     .split(re)
     .map((part) =>
-      re.test(part) ? `<mark>${escapeHtml(part)}</mark>` : escapeHtml(part),
+      part.toLowerCase() === lower ? `<mark>${escapeHtml(part)}</mark>` : escapeHtml(part),
     )
     .join('');
 }
