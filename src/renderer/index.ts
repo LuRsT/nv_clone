@@ -282,6 +282,19 @@ class NVApp {
   }
 
   private _bindEvents(): void {
+    this._bindSearchEvents();
+    this._bindEditorEvents();
+    this._bindResultsEvents();
+    this._bindGlobalKeys();
+
+    this._ports.notes.onChanged((notes) => {
+      this._notes = notes;
+      this._renderResults(this._searchInput.value);
+      this._highlightSelected(true);
+    });
+  }
+
+  private _bindSearchEvents(): void {
     this._searchInput.addEventListener('input', () => {
       if (this._rename.isActive) return;
       this._debouncedSearch();
@@ -327,7 +340,9 @@ class NVApp {
           break;
       }
     });
+  }
 
+  private _bindEditorEvents(): void {
     this._editor.addEventListener('input', () => {
       this._updateWordCount();
       if (this._currentTitle) this._autosave.schedule(this._currentTitle, this._editor.value);
@@ -347,7 +362,9 @@ class NVApp {
         this._searchInput.setSelectionRange(len, len);
       }
     });
+  }
 
+  private _bindResultsEvents(): void {
     this._resultsList.addEventListener('focusin', (e) => {
       const li = (e.target as Element).closest('li[data-title]');
       if (!li) return;
@@ -378,13 +395,9 @@ class NVApp {
         this._deleteCurrentNote();
       }
     });
+  }
 
-    this._ports.notes.onChanged((notes) => {
-      this._notes = notes;
-      this._renderResults(this._searchInput.value);
-      this._highlightSelected(true);
-    });
-
+  private _bindGlobalKeys(): void {
     window.addEventListener('keydown', (e) => {
       if (e.key === 'F1') { e.preventDefault(); this._help.toggle(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === '?') { e.preventDefault(); this._help.toggle(); return; }
