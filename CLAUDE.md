@@ -44,7 +44,7 @@ The codebase uses a ports/adapters pattern to separate business logic from infra
 - Ports: `NoteRepository`, `VaultService`, `ThemeService` (`src/renderer/ports.ts`)
 - Adapters: `IpcNoteRepository`, `IpcVaultService`, `IpcThemeService` (`src/renderer/adapters/ipc-adapter.ts`)
 - Entry point: `src/renderer/index.ts` — creates `NVApp` with injected port implementations
-- Pure logic: `app-logic.ts` (no DOM), `search.ts` (filtering), `notes-helpers.ts`
+- Pure logic: `app-logic.ts` (no DOM), `search.ts` (filtering)
 - Controllers (extracted from NVApp): `toast`, `autosave`, `resize`, `font-size`, `preview`, `rename` — all in `src/renderer/controllers/`
 
 ### IPC Channels
@@ -83,8 +83,9 @@ Three vertical panels in a single window (no sidebars, no toolbar):
 ### Testing
 
 Unit tests cover pure logic only (no integration/E2E):
-- `test/notes.test.ts` — `firstNonEmptyLine()`
 - `test/filter.test.ts` — `filterNotes()`
 - `test/highlight.test.ts` — search highlighting
 - `test/navigation.test.ts` — list navigation
 - `test/app-logic.test.ts` — `handleEnterDecision()`, `restoreSelectionIndex()`, `adjustFontSize()`, `deleteWordBackward()`, `validateRename()`
+
+READ: AGENTS.MD
