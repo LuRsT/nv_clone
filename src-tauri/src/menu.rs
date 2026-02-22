@@ -103,18 +103,9 @@ pub fn build<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
                 let Ok(vault_path) = folder.into_path() else {
                     return;
                 };
-                if !vault_path.is_dir() {
+                if !crate::commands::vault::apply_vault(&app, app.state::<AppState>().inner(), &vault_path) {
                     return;
                 }
-                let probe = vault_path.join(".nv-access-check");
-                if std::fs::write(&probe, b"").is_err() {
-                    return;
-                }
-                let _ = std::fs::remove_file(&probe);
-
-                crate::commands::vault::write_config(&app, &vault_path);
-                *app.state::<AppState>().vault_path.lock().unwrap() = Some(vault_path.clone());
-                crate::watcher::start(&app, vault_path.clone());
 
                 if let Ok(notes) = crate::commands::notes::list_notes_from_path(&vault_path) {
                     let _ = app.emit("notes:changed", notes);

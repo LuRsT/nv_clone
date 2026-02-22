@@ -9,7 +9,27 @@ fn config_path<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
     app.path().app_data_dir().ok().map(|d| d.join("config.json"))
 }
 
-pub fn write_config<R: Runtime>(app: &AppHandle<R>, vault_path: &PathBuf) {
+/// Validate, persist, and activate a new vault directory.
+///
+/// Returns `true` when the vault was successfully applied. Shared by the
+/// `vault_select` command and the "Change Vault…" menu handler.
+pub fn apply_vault<R: Runtime>(app: &AppHandle<R>, state: &AppState, vault_path: &PathBuf) -> bool {
+    if !vault_path.is_dir() {
+        return false;
+    }
+    let probe = vault_path.join(".nv-access-check");
+    if std::fs::write(&probe, b"").is_err() {
+        return false;
+    }
+    let _ = std::fs::remove_file(&probe);
+
+    write_config(app, vault_path);
+    *state.vault_path.lock().unwrap() = Some(vault_path.clone());
+    crate::watcher::start(app, vault_path.clone());
+    true
+}
+
+fn write_config<R: Runtime>(app: &AppHandle<R>, vault_path: &PathBuf) {
     if let Some(cfg) = config_path(app) {
         if let Some(parent) = cfg.parent() {
             let _ = std::fs::create_dir_all(parent);
@@ -57,20 +77,9 @@ pub async fn vault_select(
 
     let vault_path: PathBuf = folder.into_path().map_err(|e| e.to_string())?;
 
-    // Validate the directory is accessible for reading and writing.
-    if !vault_path.is_dir() {
+    if !apply_vault(&app, &state, &vault_path) {
         return Ok(None);
     }
-    let probe = vault_path.join(".nv-access-check");
-    if std::fs::write(&probe, b"").is_err() {
-        return Ok(None);
-    }
-    let _ = std::fs::remove_file(&probe);
-
-    write_config(&app, &vault_path);
-    *state.vault_path.lock().unwrap() = Some(vault_path.clone());
-
-    crate::watcher::start(&app, vault_path.clone());
 
     Ok(Some(vault_path.to_string_lossy().into_owned()))
 }
