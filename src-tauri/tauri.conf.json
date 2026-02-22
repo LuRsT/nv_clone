@@ -37,12 +37,7 @@
         "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"]
       }
     },
-    "macOS": {
-      "dmg": {
-        "applicationFolderName": "Applications"
-      }
-    },
-    "windows": {
+"windows": {
       "nsis": {
         "installMode": "currentUser"
       }
