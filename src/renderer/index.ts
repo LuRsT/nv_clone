@@ -390,7 +390,7 @@ class NVApp {
         this._moveSelectionInList(-1);
       } else if (e.key === 'Escape') {
         this._searchInput.focus();
-      } else if (e.key === 'Delete') {
+      } else if (e.key === 'Delete' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         this._deleteCurrentNote();
       }
