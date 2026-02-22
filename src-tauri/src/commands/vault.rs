@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::mpsc;
 use tauri::{AppHandle, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
 
@@ -36,11 +37,20 @@ pub fn vault_get(state: State<'_, AppState>) -> Option<String> {
 }
 
 #[tauri::command]
-pub fn vault_select(
+pub async fn vault_select(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<Option<String>, String> {
-    let folder = match app.dialog().file().blocking_pick_folder() {
+    let (tx, rx) = mpsc::channel();
+    app.dialog().file().pick_folder(move |result| {
+        let _ = tx.send(result);
+    });
+    // Wait on a blocking thread so the async executor stays free to process
+    // the main-thread dialog events that pick_folder dispatches.
+    let folder = tauri::async_runtime::spawn_blocking(move || rx.recv().ok().flatten())
+        .await
+        .map_err(|e| e.to_string())?;
+    let folder = match folder {
         None => return Ok(None),
         Some(f) => f,
     };
