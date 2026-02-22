@@ -2,11 +2,10 @@
   "name": "nv",
   "version": "1.0.0",
   "description": "A keyboard-first Notational Velocity clone for plain-text markdown notes",
-  "main": "dist/main.js",
   "scripts": {
-    "build": "node build.js",
-    "start": "node build.js && cargo run --manifest-path src-tauri/Cargo.toml",
-    "package": "node build.js && electron-builder",
+    "start": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri",
     "test": "tsx --test 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\""
@@ -16,42 +15,17 @@
   "license": "MIT",
   "dependencies": {
     "@tauri-apps/api": "^2.10.1",
-    "chokidar": "^3.6.0",
     "dompurify": "^3.3.1",
     "marked": "^17.0.3"
-  },
-  "build": {
-    "appId": "com.nv.notes",
-    "productName": "NV",
-    "directories": {
-      "output": "release"
-    },
-    "electronDist": "node_modules/electron/dist",
-    "files": [
-      "dist/**/*"
-    ],
-    "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "category": "Office"
-    },
-    "mac": {
-      "target": "dmg"
-    },
-    "win": {
-      "target": "nsis"
-    }
   },
   "overrides": {
     "minimatch": "^10.2.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@tauri-apps/cli": "^2",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^25.3.0",
-    "electron": "^40.6.0",
-    "electron-builder": "^26.8.1",
     "esbuild": "^0.27.3",
     "eslint": "^10.0.1",
     "tsx": "^4.21.0",
