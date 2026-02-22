@@ -1,4 +1,4 @@
-// Renderer entry point — runs in Chromium, window.api injected by preload.
+// Renderer entry point — runs in the Tauri webview.
 
 import { filterNotes, highlightMatches } from './search'
 import {
@@ -11,7 +11,7 @@ import {
 } from './app-logic'
 import type { NoteInfo } from './window'
 import type { NoteRepository, VaultService, ThemeService } from './ports'
-import { IpcNoteRepository, IpcVaultService, IpcThemeService } from './adapters/ipc-adapter'
+import { TauriNoteRepository, TauriVaultService, TauriThemeService } from './adapters/tauri-adapter'
 import { ToastController } from './controllers/toast-controller'
 import { AutosaveController } from './controllers/autosave-controller'
 import { ResizeController } from './controllers/resize-controller'
@@ -28,9 +28,9 @@ export interface AppPorts {
 
 window.addEventListener('DOMContentLoaded', async () => {
   const ports: AppPorts = {
-    notes: new IpcNoteRepository(),
-    vault: new IpcVaultService(),
-    theme: new IpcThemeService(),
+    notes: new TauriNoteRepository(),
+    vault: new TauriVaultService(),
+    theme: new TauriThemeService(),
   };
   await initTheme(ports.theme);
   await initVault(ports);

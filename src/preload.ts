@@ -1,6 +1,19 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { NoteInfo, WindowApi } from './renderer/window';
+import type { NoteInfo } from './renderer/window';
 import { IPC } from './ipc-channels';
+
+interface WindowApi {
+  selectVault(): Promise<string | null>
+  getVaultPath(): Promise<string | null>
+  listNotes(): Promise<NoteInfo[] | null>
+  readNote(title: string): Promise<string>
+  writeNote(title: string, body: string): Promise<void>
+  deleteNote(title: string): Promise<void>
+  renameNote(oldTitle: string, newTitle: string): Promise<void>
+  onNotesChanged(cb: (notes: NoteInfo[]) => void): void
+  onThemeChanged(cb: (isDark: boolean) => void): void
+  isDarkMode(): Promise<boolean>
+}
 
 const api: WindowApi = {
   // Vault
