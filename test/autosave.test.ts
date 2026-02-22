@@ -99,3 +99,30 @@ test('schedule() captures body eagerly, not lazily', async () => {
   assert.equal(notes.writes[0].body, 'version-1')
   assert.equal(mutableBody, 'version-2')
 })
+
+test('cancel() prevents stale write after note deletion', async () => {
+  const notes = createStubNotes()
+  const autosave = new AutosaveController(notes, createStubToast())
+
+  // Simulate: user types, then deletes note before autosave fires
+  autosave.schedule('doomed-note', 'some content')
+  assert.equal(autosave.pendingTitle, 'doomed-note')
+  autosave.cancel()
+  assert.equal(autosave.pendingTitle, null)
+
+  await delay(AUTOSAVE_DELAY_MS + 50)
+
+  // No write should have occurred — the note was deleted
+  assert.equal(notes.writes.length, 0)
+})
+
+test('cancel() clears pending title and body', async () => {
+  const notes = createStubNotes()
+  const autosave = new AutosaveController(notes, createStubToast())
+
+  autosave.schedule('note-1', 'content')
+  assert.equal(autosave.pendingTitle, 'note-1')
+
+  autosave.cancel()
+  assert.equal(autosave.pendingTitle, null)
+})

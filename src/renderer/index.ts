@@ -329,6 +329,7 @@ class NVApp {
 
   private async _deleteCurrentNote(): Promise<void> {
     if (!this._currentTitle) return;
+    this._autosave.cancel();
     const deleted = this._currentTitle;
     try {
       await this._ports.notes.delete(deleted);
@@ -522,6 +523,7 @@ class NVApp {
 
   private async _handleRenameCommit(): Promise<void> {
     if (!this._currentTitle) return;
+    await this._autosave.cancelAndFlush(this._currentTitle, this._editor.value);
     const result = await this._rename.commit(
       this._searchInput,
       this._currentTitle,
