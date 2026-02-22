@@ -154,9 +154,14 @@ class NVApp {
 
   private _renderResults(query: string): void {
     this._filtered = filterNotes(this._notes, query);
-    this._resultsList.innerHTML = '';
+
+    // Remove stale empty-state placeholder if present.
+    const emptyState = this._resultsList.querySelector('#empty-state');
+    if (emptyState) emptyState.remove();
 
     if (this._filtered.length === 0) {
+      // Clear any leftover note items.
+      this._resultsList.innerHTML = '';
       const li = document.createElement('li');
       li.id = 'empty-state';
       li.textContent = query ? `Press Enter to create "${query}"` : 'No notes yet';
@@ -165,38 +170,84 @@ class NVApp {
       return;
     }
 
-    this._filtered.forEach((note) => {
-      const li = document.createElement('li');
-      li.dataset.title = note.title;
+    // Build a map of existing DOM nodes keyed by title for O(1) lookup.
+    const existingItems = new Map<string, HTMLLIElement>();
+    for (const el of this._resultsList.querySelectorAll('li[data-title]')) {
+      existingItems.set((el as HTMLLIElement).dataset.title!, el as HTMLLIElement);
+    }
 
-      const headerEl = document.createElement('div');
-      headerEl.className = 'note-header';
-
-      const titleEl = document.createElement('div');
-      titleEl.className = 'note-title';
-      titleEl.innerHTML = highlightMatches(note.title, query);
-
-      if (note.excerpt) {
-        const excerptEl = document.createElement('span');
-        excerptEl.className = 'note-excerpt';
-        excerptEl.innerHTML = highlightMatches(note.excerpt, query);
-        titleEl.appendChild(excerptEl);
+    // Reconcile: walk the new filtered list and reuse/create nodes in order.
+    let cursor: Node | null = this._resultsList.firstChild;
+    for (const note of this._filtered) {
+      const existing = existingItems.get(note.title);
+      if (existing) {
+        // Reuse node — update contents in place.
+        existingItems.delete(note.title);
+        this._updateNoteItem(existing, note, query);
+        if (existing !== cursor) {
+          this._resultsList.insertBefore(existing, cursor);
+        } else {
+          cursor = cursor.nextSibling;
+        }
+      } else {
+        // Create new node.
+        const li = this._createNoteItem(note, query);
+        this._resultsList.insertBefore(li, cursor);
       }
+    }
 
-      const timeEl = document.createElement('div');
-      timeEl.className = 'note-time';
-      timeEl.textContent = formatRelativeTime(note.mtime);
-
-      headerEl.appendChild(titleEl);
-      headerEl.appendChild(timeEl);
-
-      li.setAttribute('tabindex', '-1');
-      li.appendChild(headerEl);
-      this._resultsList.appendChild(li);
-    });
+    // Remove DOM nodes that are no longer in the filtered list.
+    for (const stale of existingItems.values()) {
+      stale.remove();
+    }
 
     this._selectedIndex = restoreSelectionIndex(this._filtered, this._currentTitle);
     this._highlightSelected(false);
+  }
+
+  private _createNoteItem(note: NoteInfo, query: string): HTMLLIElement {
+    const li = document.createElement('li');
+    li.dataset.title = note.title;
+    li.setAttribute('tabindex', '-1');
+
+    const headerEl = document.createElement('div');
+    headerEl.className = 'note-header';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'note-title';
+    titleEl.innerHTML = highlightMatches(note.title, query);
+
+    if (note.excerpt) {
+      const excerptEl = document.createElement('span');
+      excerptEl.className = 'note-excerpt';
+      excerptEl.innerHTML = highlightMatches(note.excerpt, query);
+      titleEl.appendChild(excerptEl);
+    }
+
+    const timeEl = document.createElement('div');
+    timeEl.className = 'note-time';
+    timeEl.textContent = formatRelativeTime(note.mtime);
+
+    headerEl.appendChild(titleEl);
+    headerEl.appendChild(timeEl);
+    li.appendChild(headerEl);
+    return li;
+  }
+
+  private _updateNoteItem(li: HTMLLIElement, note: NoteInfo, query: string): void {
+    const titleEl = li.querySelector('.note-title');
+    if (titleEl) {
+      const newTitleHtml = highlightMatches(note.title, query);
+      let excerptHtml = '';
+      if (note.excerpt) {
+        excerptHtml = `<span class="note-excerpt">${highlightMatches(note.excerpt, query)}</span>`;
+      }
+      titleEl.innerHTML = newTitleHtml + excerptHtml;
+    }
+    const timeEl = li.querySelector('.note-time');
+    if (timeEl) {
+      timeEl.textContent = formatRelativeTime(note.mtime);
+    }
   }
 
   private _highlightSelected(loadEditor = true): void {
