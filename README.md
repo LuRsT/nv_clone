@@ -6,22 +6,25 @@ NOTE: Apart from this line in the README.md I (Gil) didn't touch the code in thi
 
 <img width="938" height="730" alt="2026-02-21-192358_938x730_scrot" src="https://github.com/user-attachments/assets/a0740b29-479b-4a95-a7cb-5e4c1145734b" />
 
-## Requirements:
+## Requirements
 
+- [Rust](https://rustup.rs/) (stable toolchain — `rustup install stable`)
 - Node.js ≥ 22
 - npm
 - A running display server (X11 or Wayland)
 
+### Linux system libraries
+
 On Arch Linux:
 
 ```bash
-sudo pacman -S nodejs npm
+sudo pacman -S nodejs npm rust
 ```
 
-Electron requires some system libraries that are usually present but may be missing on a minimal install:
+WebKit and GTK development headers are required for the Tauri build:
 
 ```bash
-sudo pacman -S nss nspr at-spi2-core libdrm mesa libgbm alsa-lib
+sudo pacman -S webkit2gtk-4.1 libappindicator-gtk3 librsvg patchelf
 ```
 
 ## Install
@@ -69,13 +72,19 @@ To **delete a note**: select it so it is open in the editor, then press `Ctrl+De
 
 ## Packaging
 
-Build a standalone app you can run without Node.js:
+Build a standalone app you can run without Node.js or Rust:
 
 ```bash
-npm run package
+npm run build
 ```
 
-This produces an `.AppImage` (Linux), `.dmg` (macOS), or installer (Windows) in the `release/` directory.
+This compiles a release binary and produces platform bundles in `src-tauri/target/release/bundle/`:
+
+| Platform | Output |
+|----------|--------|
+| Linux    | `.AppImage` and `.deb` in `appimage/` and `deb/` |
+| macOS    | `.dmg` in `dmg/` |
+| Windows  | NSIS installer `.exe` in `nsis/` |
 
 ## Changing the vault
 
@@ -83,7 +92,7 @@ Go to **File → Change Vault…** in the menu bar to switch to a different fold
 
 ## Releasing a new version
 
-1. Bump the version in `package.json`
+1. Bump the version in `package.json` and `src-tauri/Cargo.toml` / `src-tauri/tauri.conf.json`
 2. Commit the change and push to `master`
 3. Tag the commit and push the tag:
 
@@ -92,7 +101,7 @@ git tag v1.0.0
 git push --tags
 ```
 
-The `v*` tag push triggers the [release workflow](.github/workflows/release.yml), which builds Electron binaries for Linux, macOS, and Windows and uploads them to a GitHub Release.
+The `v*` tag push triggers the [release workflow](.github/workflows/release.yml), which builds Tauri bundles for Linux, macOS, and Windows and uploads them as a draft GitHub Release.
 
 ## Development
 
