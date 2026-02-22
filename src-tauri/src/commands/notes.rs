@@ -61,47 +61,48 @@ fn get_vault(state: &State<'_, AppState>) -> Result<PathBuf, String> {
         .ok_or_else(|| "No vault selected".to_string())
 }
 
-// ── Shared helper (also used by the file watcher) ────────────────────────────
+// ── Shared helpers (also used by the file watcher) ───────────────────────────
+
+/// Read a single `.md` file into a `NoteInfo`. Returns `None` if the file
+/// cannot be read or doesn't qualify (not `.md`, dot-prefixed, etc.).
+pub fn read_note_info(path: &Path) -> Option<NoteInfo> {
+    let name = path.file_name()?.to_string_lossy();
+    if !name.ends_with(".md") || name.starts_with('.') {
+        return None;
+    }
+    let title = path.file_stem()?.to_string_lossy().into_owned();
+
+    let mut file = std::fs::File::open(path).ok()?;
+    let meta = file.metadata().ok()?;
+    let mtime = meta
+        .modified()
+        .ok()?
+        .duration_since(UNIX_EPOCH)
+        .ok()?
+        .as_millis() as f64;
+
+    let mut buf = [0u8; 512];
+    let n = file.read(&mut buf).unwrap_or(0);
+    let preview = String::from_utf8_lossy(&buf[..n]);
+    let excerpt = first_non_empty_line(&preview).to_string();
+    let body = preview.into_owned();
+
+    Some(NoteInfo {
+        title,
+        excerpt,
+        body,
+        mtime,
+    })
+}
 
 /// List all notes in a vault directory, reading only the first 512 bytes of
-/// each file for the excerpt. This is the single source of truth for both the
-/// `notes_list` command and the watcher's `notes:changed` event payload.
+/// each file for the excerpt.
 pub fn list_notes_from_path(vault: &Path) -> Result<Vec<NoteInfo>, String> {
     let entries = std::fs::read_dir(vault).map_err(|e| format!("Cannot read vault: {e}"))?;
 
     let mut notes: Vec<NoteInfo> = entries
         .filter_map(|e| e.ok())
-        .filter(|e| {
-            let name = e.file_name();
-            let s = name.to_string_lossy();
-            s.ends_with(".md") && !s.starts_with('.')
-        })
-        .filter_map(|e| {
-            let path = e.path();
-            let title = path.file_stem()?.to_string_lossy().into_owned();
-
-            let mut file = std::fs::File::open(&path).ok()?;
-            let meta = file.metadata().ok()?;
-            let mtime = meta
-                .modified()
-                .ok()?
-                .duration_since(UNIX_EPOCH)
-                .ok()?
-                .as_millis() as f64;
-
-            let mut buf = [0u8; 512];
-            let n = file.read(&mut buf).unwrap_or(0);
-            let preview = String::from_utf8_lossy(&buf[..n]);
-            let excerpt = first_non_empty_line(&preview).to_string();
-            let body = preview.into_owned();
-
-            Some(NoteInfo {
-                title,
-                excerpt,
-                body,
-                mtime,
-            })
-        })
+        .filter_map(|e| read_note_info(&e.path()))
         .collect();
 
     notes.sort_by(|a, b| b.mtime.partial_cmp(&a.mtime).unwrap());

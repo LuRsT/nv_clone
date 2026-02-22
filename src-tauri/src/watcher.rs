@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -5,6 +6,7 @@ use std::time::{Duration, Instant};
 use notify::{RecursiveMode, Watcher};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
+use crate::commands::notes::NoteInfo;
 use crate::{AppState, WatcherState};
 
 const DEBOUNCE: Duration = Duration::from_millis(100);
@@ -39,21 +41,26 @@ pub fn start<R: Runtime>(app: &AppHandle<R>, vault_path: PathBuf) {
     std::thread::spawn(move || debounce_loop(rx, app, vault_path));
 }
 
-/// Reads events from `rx`, debounces them over `DEBOUNCE`, then emits a
-/// `notes:changed` Tauri event with the refreshed note list.
+/// Reads events from `rx`, debounces them over `DEBOUNCE`, then applies
+/// incremental updates to a cached note list and emits `notes:changed`.
 fn debounce_loop<R: Runtime>(
     rx: mpsc::Receiver<notify::Result<notify::Event>>,
     app: AppHandle<R>,
     vault_path: PathBuf,
 ) {
+    // Seed cache with initial full read.
+    let mut cache: Vec<NoteInfo> =
+        crate::commands::notes::list_notes_from_path(&vault_path).unwrap_or_default();
+
     let mut pending = false;
     let mut deadline = Instant::now();
+    let mut dirty_paths: HashSet<PathBuf> = HashSet::new();
 
     loop {
         let timeout = if pending {
             let now = Instant::now();
             if now >= deadline {
-                emit_changed(&app, &vault_path);
+                apply_incremental(&app, &vault_path, &mut cache, &mut dirty_paths);
                 pending = false;
                 Duration::from_secs(3600)
             } else {
@@ -65,20 +72,18 @@ fn debounce_loop<R: Runtime>(
 
         match rx.recv_timeout(timeout) {
             Ok(Ok(event)) => {
-                // Only react to .md files.
-                let is_md = event
-                    .paths
-                    .iter()
-                    .any(|p| p.extension().map_or(false, |e| e == "md"));
-                if is_md {
-                    pending = true;
-                    deadline = Instant::now() + DEBOUNCE;
+                for p in &event.paths {
+                    if p.extension().is_some_and(|e| e == "md") {
+                        dirty_paths.insert(p.clone());
+                        pending = true;
+                        deadline = Instant::now() + DEBOUNCE;
+                    }
                 }
             }
             Ok(Err(e)) => eprintln!("watcher: notify error: {e}"),
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 if pending {
-                    emit_changed(&app, &vault_path);
+                    apply_incremental(&app, &vault_path, &mut cache, &mut dirty_paths);
                     pending = false;
                 }
             }
@@ -87,22 +92,43 @@ fn debounce_loop<R: Runtime>(
     }
 }
 
-fn emit_changed<R: Runtime>(app: &AppHandle<R>, vault_path: &PathBuf) {
-    // Re-use the notes_list logic by reading AppState from the app handle.
+/// Apply incremental updates for `dirty_paths` to the cache, then emit.
+fn apply_incremental<R: Runtime>(
+    app: &AppHandle<R>,
+    vault_path: &PathBuf,
+    cache: &mut Vec<NoteInfo>,
+    dirty_paths: &mut HashSet<PathBuf>,
+) {
+    // Verify the vault hasn't changed.
     let app_state = app.state::<AppState>();
     let vault_guard = app_state.vault_path.lock().unwrap();
     let current = match vault_guard.as_ref() {
         Some(p) if p == vault_path => p.clone(),
-        _ => return, // vault changed before we could emit — skip
+        _ => return,
     };
     drop(vault_guard);
 
-    match crate::commands::notes::list_notes_from_path(&current) {
-        Ok(notes) => {
-            if let Err(e) = app.emit("notes:changed", notes) {
-                eprintln!("watcher: emit error: {e}");
+    for path in dirty_paths.drain() {
+        // Derive title from filename.
+        let title = match path.file_stem() {
+            Some(s) => s.to_string_lossy().into_owned(),
+            None => continue,
+        };
+
+        // Remove old entry for this title.
+        cache.retain(|n| n.title != title);
+
+        // If the file still exists and qualifies, re-read and insert.
+        if path.starts_with(&current) {
+            if let Some(info) = crate::commands::notes::read_note_info(&path) {
+                cache.push(info);
             }
         }
-        Err(e) => eprintln!("watcher: list_notes error: {e}"),
+    }
+
+    cache.sort_by(|a, b| b.mtime.partial_cmp(&a.mtime).unwrap());
+
+    if let Err(e) = app.emit("notes:changed", cache.clone()) {
+        eprintln!("watcher: emit error: {e}");
     }
 }
