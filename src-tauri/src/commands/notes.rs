@@ -155,3 +155,188 @@ pub fn notes_rename(
     let new_path = note_path(&vault, &new_title)?;
     std::fs::rename(&old_path, &new_path).map_err(|e| format!("Cannot rename note: {e}"))
 }
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn tmp() -> TempDir {
+        tempfile::tempdir().expect("create temp dir")
+    }
+
+    // ── assert_safe_title ────────────────────────────────────────────────────
+
+    #[test]
+    fn safe_title_accepts_valid() {
+        let dir = tmp();
+        assert!(assert_safe_title(dir.path(), "hello world").is_ok());
+        assert!(assert_safe_title(dir.path(), "my-note").is_ok());
+        assert!(assert_safe_title(dir.path(), "note 2024").is_ok());
+    }
+
+    #[test]
+    fn safe_title_rejects_empty() {
+        let dir = tmp();
+        assert!(assert_safe_title(dir.path(), "").is_err());
+    }
+
+    #[test]
+    fn safe_title_rejects_forward_slash() {
+        let dir = tmp();
+        assert!(assert_safe_title(dir.path(), "a/b").is_err());
+    }
+
+    #[test]
+    fn safe_title_rejects_backslash() {
+        let dir = tmp();
+        assert!(assert_safe_title(dir.path(), "a\\b").is_err());
+    }
+
+    #[test]
+    fn safe_title_rejects_null_byte() {
+        let dir = tmp();
+        assert!(assert_safe_title(dir.path(), "a\0b").is_err());
+    }
+
+    #[test]
+    fn safe_title_rejects_dot() {
+        let dir = tmp();
+        assert!(assert_safe_title(dir.path(), ".").is_err());
+    }
+
+    #[test]
+    fn safe_title_rejects_dotdot() {
+        let dir = tmp();
+        assert!(assert_safe_title(dir.path(), "..").is_err());
+    }
+
+    #[test]
+    fn safe_title_rejects_dot_prefixed() {
+        let dir = tmp();
+        assert!(assert_safe_title(dir.path(), ".hidden").is_err());
+    }
+
+    #[test]
+    fn safe_title_rejects_traversal_via_separator() {
+        // The slash check fires before path arithmetic, but both layers block this.
+        let dir = tmp();
+        assert!(assert_safe_title(dir.path(), "../evil").is_err());
+    }
+
+    // ── list_notes_from_path ─────────────────────────────────────────────────
+
+    #[test]
+    fn list_empty_vault() {
+        let dir = tmp();
+        let notes = list_notes_from_path(dir.path()).unwrap();
+        assert!(notes.is_empty());
+    }
+
+    #[test]
+    fn list_ignores_non_md_files() {
+        let dir = tmp();
+        fs::write(dir.path().join("readme.txt"), "text").unwrap();
+        let notes = list_notes_from_path(dir.path()).unwrap();
+        assert!(notes.is_empty());
+    }
+
+    #[test]
+    fn list_ignores_dot_md_files() {
+        let dir = tmp();
+        fs::write(dir.path().join(".hidden.md"), "secret").unwrap();
+        let notes = list_notes_from_path(dir.path()).unwrap();
+        assert!(notes.is_empty());
+    }
+
+    #[test]
+    fn list_returns_title_and_excerpt() {
+        let dir = tmp();
+        fs::write(dir.path().join("alpha.md"), "\nexcerpt line\nmore text").unwrap();
+        let notes = list_notes_from_path(dir.path()).unwrap();
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].title, "alpha");
+        assert_eq!(notes[0].excerpt, "excerpt line");
+        assert_eq!(notes[0].body, ""); // body is intentionally empty in list
+    }
+
+    #[test]
+    fn list_sorted_by_mtime_descending() {
+        let dir = tmp();
+        // Write two files with different modification times.
+        let older = dir.path().join("older.md");
+        let newer = dir.path().join("newer.md");
+        fs::write(&older, "old").unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        fs::write(&newer, "new").unwrap();
+
+        let notes = list_notes_from_path(dir.path()).unwrap();
+        assert_eq!(notes.len(), 2);
+        assert!(notes[0].mtime >= notes[1].mtime);
+        assert_eq!(notes[0].title, "newer");
+    }
+
+    // ── note_path / CRUD helpers ─────────────────────────────────────────────
+
+    #[test]
+    fn note_path_resolves_correctly() {
+        let dir = tmp();
+        let p = note_path(dir.path(), "my note").unwrap();
+        assert_eq!(p, dir.path().join("my note.md"));
+    }
+
+    #[test]
+    fn write_then_read() {
+        let dir = tmp();
+        let vault = dir.path();
+        let path = note_path(vault, "test").unwrap();
+        fs::write(&path, "hello world").unwrap();
+        let body = fs::read_to_string(&path).unwrap();
+        assert_eq!(body, "hello world");
+    }
+
+    #[test]
+    fn delete_nonexistent_is_ok() {
+        let dir = tmp();
+        // Remove a file that doesn't exist — should not panic.
+        let path = dir.path().join("ghost.md");
+        let _ = fs::remove_file(&path); // mirrors notes_delete behaviour
+    }
+
+    #[test]
+    fn rename_moves_file() {
+        let dir = tmp();
+        let old_path = note_path(dir.path(), "old").unwrap();
+        let new_path = note_path(dir.path(), "new").unwrap();
+        fs::write(&old_path, "content").unwrap();
+        fs::rename(&old_path, &new_path).unwrap();
+        assert!(!old_path.exists());
+        assert!(new_path.exists());
+    }
+
+    #[test]
+    fn rename_invalid_new_title_is_rejected() {
+        let dir = tmp();
+        assert!(note_path(dir.path(), "../evil").is_err());
+    }
+
+    // ── first_non_empty_line ─────────────────────────────────────────────────
+
+    #[test]
+    fn first_line_skips_blank_lines() {
+        assert_eq!(first_non_empty_line("\n\n  actual line  \nmore"), "actual line");
+    }
+
+    #[test]
+    fn first_line_empty_string() {
+        assert_eq!(first_non_empty_line(""), "");
+    }
+
+    #[test]
+    fn first_line_all_blank() {
+        assert_eq!(first_non_empty_line("\n\n   \n"), "");
+    }
+}
