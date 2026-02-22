@@ -60,5 +60,7 @@ pub fn vault_select(
     write_config(&app, &vault_path);
     *state.vault_path.lock().unwrap() = Some(vault_path.clone());
 
+    crate::watcher::start(&app, vault_path.clone());
+
     Ok(Some(vault_path.to_string_lossy().into_owned()))
 }

@@ -61,16 +61,13 @@ fn get_vault(state: &State<'_, AppState>) -> Result<PathBuf, String> {
         .ok_or_else(|| "No vault selected".to_string())
 }
 
-// ── Commands ─────────────────────────────────────────────────────────────────
+// ── Shared helper (also used by the file watcher) ────────────────────────────
 
-/// List all notes. Reads only the first 512 bytes of each file for the
-/// excerpt; the full body is not sent to avoid large IPC payloads.
-#[tauri::command]
-pub fn notes_list(state: State<'_, AppState>) -> Result<Vec<NoteInfo>, String> {
-    let vault = get_vault(&state)?;
-
-    let entries =
-        std::fs::read_dir(&vault).map_err(|e| format!("Cannot read vault: {e}"))?;
+/// List all notes in a vault directory, reading only the first 512 bytes of
+/// each file for the excerpt. This is the single source of truth for both the
+/// `notes_list` command and the watcher's `notes:changed` event payload.
+pub fn list_notes_from_path(vault: &Path) -> Result<Vec<NoteInfo>, String> {
+    let entries = std::fs::read_dir(vault).map_err(|e| format!("Cannot read vault: {e}"))?;
 
     let mut notes: Vec<NoteInfo> = entries
         .filter_map(|e| e.ok())
@@ -108,6 +105,16 @@ pub fn notes_list(state: State<'_, AppState>) -> Result<Vec<NoteInfo>, String> {
 
     notes.sort_by(|a, b| b.mtime.partial_cmp(&a.mtime).unwrap());
     Ok(notes)
+}
+
+// ── Commands ─────────────────────────────────────────────────────────────────
+
+/// List all notes. Reads only the first 512 bytes of each file for the
+/// excerpt; the full body is not sent to avoid large IPC payloads.
+#[tauri::command]
+pub fn notes_list(state: State<'_, AppState>) -> Result<Vec<NoteInfo>, String> {
+    let vault = get_vault(&state)?;
+    list_notes_from_path(&vault)
 }
 
 #[tauri::command]
