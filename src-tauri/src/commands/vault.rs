@@ -51,7 +51,7 @@ pub fn vault_get(state: State<'_, AppState>) -> Option<String> {
     state
         .vault_path
         .lock()
-        .unwrap()
+        .unwrap_or_else(|e| e.into_inner())
         .as_ref()
         .map(|p| p.to_string_lossy().into_owned())
 }
