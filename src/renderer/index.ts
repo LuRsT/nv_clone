@@ -259,7 +259,9 @@ class NVApp {
     });
 
     if (loadEditor && this._selectedIndex >= 0 && this._filtered[this._selectedIndex]) {
-      this._openNote(this._filtered[this._selectedIndex].title);
+      this._openNote(this._filtered[this._selectedIndex].title).catch((err) => {
+        this._toast.show(`Failed to open note: ${err instanceof Error ? err.message : String(err)}`);
+      });
     }
   }
 
@@ -476,6 +478,7 @@ class NVApp {
         this._searchInput.focus();
       } else if (e.key === 'Delete' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
+        e.stopPropagation();
         this._deleteCurrentNote();
       }
     });
@@ -495,7 +498,6 @@ class NVApp {
       else if (e.key === '-') { e.preventDefault(); this._fontSize.change(-1); }
       else if (e.key === '0') { e.preventDefault(); this._fontSize.change(0); }
       else if (e.key === 'p') { e.preventDefault(); this._preview.toggle(); }
-      else if (e.key === 'd') { e.preventDefault(); this._deleteCurrentNote(); }
       else if (e.key === 'r') { e.preventDefault(); if (this._currentTitle) this._rename.enter(this._currentTitle, this._searchInput); }
     });
   }
@@ -523,7 +525,7 @@ class NVApp {
       0,
       Math.min(this._filtered.length - 1, this._selectedIndex + delta)
     );
-    this._highlightSelected(false);
+    this._highlightSelected(true);
     const items = this._resultsList.querySelectorAll('li[data-title]');
     const item = items[this._selectedIndex] as HTMLElement | undefined;
     item?.scrollIntoView({ block: 'nearest' });

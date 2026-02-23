@@ -290,3 +290,10 @@ test('handles midnight edge case: recent mtime crossing calendar day', () => {
   // Only 3 minutes ago, so should show "3m ago" (not "Yesterday")
   assert.equal(formatRelativeTime(justBefore, midnightNow), '3m ago')
 })
+
+test('returns "Yesterday" for cross-midnight times within 24 hours', () => {
+  // now = June 15 at 23:00, mtime = June 14 at 01:00 (22 hours ago, but previous calendar day)
+  const lateNow = new Date(2025, 5, 15, 23, 0, 0).getTime()
+  const earlyYesterday = new Date(2025, 5, 14, 1, 0, 0).getTime()
+  assert.equal(formatRelativeTime(earlyYesterday, lateNow), 'Yesterday')
+})

@@ -1,6 +1,6 @@
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
-    App, Emitter, Manager, Runtime,
+    App, Manager, Runtime,
 };
 
 use crate::AppState;
@@ -103,17 +103,13 @@ pub fn build<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
                 let Ok(vault_path) = folder.into_path() else {
                     return;
                 };
-                if !crate::commands::vault::apply_vault(
+                // apply_vault starts the watcher which seeds its cache and
+                // emits notes:changed — no need to emit again here.
+                crate::commands::vault::apply_vault(
                     &app,
                     app.state::<AppState>().inner(),
                     &vault_path,
-                ) {
-                    return;
-                }
-
-                if let Ok(notes) = crate::commands::notes::list_notes_from_path(&vault_path) {
-                    let _ = app.emit("notes:changed", notes);
-                }
+                );
             });
         }
         #[cfg(debug_assertions)]

@@ -94,16 +94,22 @@ export function formatRelativeTime(mtime: number, now = Date.now()): string {
   if (diffMs < 0) return 'Just now';
 
   const diffMin = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
 
   if (diffMin < 1) return 'Just now';
   if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
 
+  // Calendar-day boundaries — checked before hours so cross-midnight times
+  // show "Yesterday" instead of e.g. "22h ago".
   const mtimeDate = new Date(mtime);
   const nowDate = new Date(now);
 
   const todayStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()).getTime();
+
+  // Same calendar day → show hours
+  if (mtime >= todayStart) {
+    const diffHours = Math.floor(diffMs / 3600000);
+    return `${diffHours}h ago`;
+  }
 
   const yesterday = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate());
   yesterday.setDate(yesterday.getDate() - 1);
@@ -113,7 +119,7 @@ export function formatRelativeTime(mtime: number, now = Date.now()): string {
   weekAgo.setDate(weekAgo.getDate() - 6);
   const weekAgoStart = weekAgo.getTime();
 
-  if (mtime >= yesterdayStart && mtime < todayStart) return 'Yesterday';
+  if (mtime >= yesterdayStart) return 'Yesterday';
 
   if (mtime >= weekAgoStart) {
     return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][mtimeDate.getDay()];

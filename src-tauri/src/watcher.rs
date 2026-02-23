@@ -132,7 +132,7 @@ fn apply_incremental<R: Runtime>(
         }
     }
 
-    cache.sort_by(|a, b| b.mtime.partial_cmp(&a.mtime).unwrap());
+    cache.sort_by(|a, b| b.mtime.partial_cmp(&a.mtime).unwrap_or(std::cmp::Ordering::Equal));
 
     if let Err(e) = app.emit("notes:changed", cache.clone()) {
         eprintln!("watcher: emit error: {e}");
