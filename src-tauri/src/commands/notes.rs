@@ -368,7 +368,10 @@ mod tests {
         fs::write(&path, &content).unwrap();
         let info = read_note_info(&path).unwrap();
         // Body should not contain replacement character U+FFFD.
-        assert!(!info.body.contains('\u{FFFD}'), "body contains replacement char");
+        assert!(
+            !info.body.contains('\u{FFFD}'),
+            "body contains replacement char"
+        );
         // Body should be truncated before the incomplete character.
         assert_eq!(info.body.len(), 8190);
     }

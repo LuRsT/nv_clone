@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use tauri::{AppHandle, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
@@ -6,14 +6,17 @@ use tauri_plugin_dialog::DialogExt;
 use crate::AppState;
 
 fn config_path<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
-    app.path().app_data_dir().ok().map(|d| d.join("config.json"))
+    app.path()
+        .app_data_dir()
+        .ok()
+        .map(|d| d.join("config.json"))
 }
 
 /// Validate, persist, and activate a new vault directory.
 ///
 /// Returns `true` when the vault was successfully applied. Shared by the
 /// `vault_select` command and the "Change Vault…" menu handler.
-pub fn apply_vault<R: Runtime>(app: &AppHandle<R>, state: &AppState, vault_path: &PathBuf) -> bool {
+pub fn apply_vault<R: Runtime>(app: &AppHandle<R>, state: &AppState, vault_path: &Path) -> bool {
     if !vault_path.is_dir() {
         return false;
     }
@@ -24,12 +27,12 @@ pub fn apply_vault<R: Runtime>(app: &AppHandle<R>, state: &AppState, vault_path:
     let _ = std::fs::remove_file(&probe);
 
     write_config(app, vault_path);
-    *state.vault_path.lock().unwrap_or_else(|e| e.into_inner()) = Some(vault_path.clone());
-    crate::watcher::start(app, vault_path.clone());
+    *state.vault_path.lock().unwrap_or_else(|e| e.into_inner()) = Some(vault_path.to_path_buf());
+    crate::watcher::start(app, vault_path.to_path_buf());
     true
 }
 
-fn write_config<R: Runtime>(app: &AppHandle<R>, vault_path: &PathBuf) {
+fn write_config<R: Runtime>(app: &AppHandle<R>, vault_path: &Path) {
     if let Some(cfg) = config_path(app) {
         if let Some(parent) = cfg.parent() {
             let _ = std::fs::create_dir_all(parent);
@@ -41,8 +44,7 @@ fn write_config<R: Runtime>(app: &AppHandle<R>, vault_path: &PathBuf) {
 
 pub fn read_config_vault<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
     let cfg = config_path(app)?;
-    let json: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(cfg).ok()?).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(cfg).ok()?).ok()?;
     json.get("vaultPath")?.as_str().map(PathBuf::from)
 }
 

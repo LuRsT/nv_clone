@@ -103,7 +103,11 @@ pub fn build<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
                 let Ok(vault_path) = folder.into_path() else {
                     return;
                 };
-                if !crate::commands::vault::apply_vault(&app, app.state::<AppState>().inner(), &vault_path) {
+                if !crate::commands::vault::apply_vault(
+                    &app,
+                    app.state::<AppState>().inner(),
+                    &vault_path,
+                ) {
                     return;
                 }
 
