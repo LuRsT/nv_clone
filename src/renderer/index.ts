@@ -132,6 +132,7 @@ class NVApp {
 
   async init(): Promise<void> {
     await this._loadNotes();
+    this._highlightSelected(true);
     this._bindEvents();
     this._resize.bind();
     this._fontSize.apply();
