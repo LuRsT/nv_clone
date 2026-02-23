@@ -25,6 +25,8 @@ A Notational Velocity clone: a keyboard-first, single-window Tauri app for plain
 npm start          # Launch Tauri dev mode (tauri dev)
 npm test           # Run TS unit tests (tsx --test 'test/**/*.test.ts')
 npm run typecheck  # Type-check without emitting (tsc --noEmit)
+npm run lint       # Lint TS with eslint
+npm run lint:rust  # Lint Rust with clippy + check formatting
 npm run build      # Production build (tauri build)
 cd src-tauri && cargo test   # Run Rust unit tests
 cd src-tauri && cargo check  # Type-check Rust without building
