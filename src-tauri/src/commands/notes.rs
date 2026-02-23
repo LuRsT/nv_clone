@@ -65,6 +65,7 @@ fn get_vault(state: &State<'_, AppState>) -> Result<PathBuf, String> {
 
 /// Read a single `.md` file into a `NoteInfo`. Returns `None` if the file
 /// cannot be read or doesn't qualify (not `.md`, dot-prefixed, etc.).
+/// Reads up to 8KB for the body/excerpt to support search across note content.
 pub fn read_note_info(path: &Path) -> Option<NoteInfo> {
     let name = path.file_name()?.to_string_lossy();
     if !name.ends_with(".md") || name.starts_with('.') {
@@ -81,9 +82,18 @@ pub fn read_note_info(path: &Path) -> Option<NoteInfo> {
         .ok()?
         .as_millis() as f64;
 
-    let mut buf = [0u8; 512];
+    let mut buf = vec![0u8; 8192];
     let n = file.read(&mut buf).unwrap_or(0);
-    let preview = String::from_utf8_lossy(&buf[..n]);
+    // Scan backwards to find a valid UTF-8 boundary so we don't split
+    // multi-byte characters at the buffer edge.
+    let safe_end = {
+        let mut end = n;
+        while end > 0 && std::str::from_utf8(&buf[..end]).is_err() {
+            end -= 1;
+        }
+        end
+    };
+    let preview = String::from_utf8_lossy(&buf[..safe_end]);
     let excerpt = first_non_empty_line(&preview).to_string();
     let body = preview.into_owned();
 
@@ -95,8 +105,8 @@ pub fn read_note_info(path: &Path) -> Option<NoteInfo> {
     })
 }
 
-/// List all notes in a vault directory, reading only the first 512 bytes of
-/// each file for the excerpt.
+/// List all notes in a vault directory, reading up to 8KB of each file for
+/// the body (used for search) and excerpt.
 pub fn list_notes_from_path(vault: &Path) -> Result<Vec<NoteInfo>, String> {
     let entries = std::fs::read_dir(vault).map_err(|e| format!("Cannot read vault: {e}"))?;
 
@@ -111,8 +121,7 @@ pub fn list_notes_from_path(vault: &Path) -> Result<Vec<NoteInfo>, String> {
 
 // ── Commands ─────────────────────────────────────────────────────────────────
 
-/// List all notes. Reads only the first 512 bytes of each file for the
-/// excerpt; the full body is not sent to avoid large IPC payloads.
+/// List all notes. Reads up to 8KB of each file for body search and excerpt.
 #[tauri::command]
 pub fn notes_list(state: State<'_, AppState>) -> Result<Vec<NoteInfo>, String> {
     let vault = get_vault(&state)?;
@@ -153,6 +162,9 @@ pub fn notes_rename(
     let vault = get_vault(&state)?;
     let old_path = note_path(&vault, &old_title)?;
     let new_path = note_path(&vault, &new_title)?;
+    if new_path.exists() {
+        return Err(format!("A note named \"{}\" already exists", new_title));
+    }
     std::fs::rename(&old_path, &new_path).map_err(|e| format!("Cannot rename note: {e}"))
 }
 
@@ -341,5 +353,35 @@ mod tests {
     #[test]
     fn first_line_all_blank() {
         assert_eq!(first_non_empty_line("\n\n   \n"), "");
+    }
+
+    // ── read_note_info UTF-8 safety ─────────────────────────────────────────
+
+    #[test]
+    fn read_note_info_handles_multibyte_at_boundary() {
+        let dir = tmp();
+        let path = dir.path().join("utf8.md");
+        // Create content where a multi-byte character spans the 8KB boundary.
+        // U+1F600 (😀) is 4 bytes in UTF-8: F0 9F 98 80
+        let mut content = "a".repeat(8190);
+        content.push('😀'); // bytes 8190..8194, crossing the 8192 boundary
+        fs::write(&path, &content).unwrap();
+        let info = read_note_info(&path).unwrap();
+        // Body should not contain replacement character U+FFFD.
+        assert!(!info.body.contains('\u{FFFD}'), "body contains replacement char");
+        // Body should be truncated before the incomplete character.
+        assert_eq!(info.body.len(), 8190);
+    }
+
+    // ── rename overwrite protection ─────────────────────────────────────────
+
+    #[test]
+    fn read_note_info_reads_up_to_8kb() {
+        let dir = tmp();
+        let path = dir.path().join("big.md");
+        let content = "x".repeat(10000);
+        fs::write(&path, &content).unwrap();
+        let info = read_note_info(&path).unwrap();
+        assert_eq!(info.body.len(), 8192);
     }
 }
