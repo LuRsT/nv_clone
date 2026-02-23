@@ -275,8 +275,15 @@ class NVApp {
     this._currentTitle = title;
     const note = this._notes.find((n) => n.title === title);
     this._currentMtime = note?.mtime ?? 0;
-    const body = await this._ports.notes.read(title);
-    this._editor.value = body;
+    try {
+      const body = await this._ports.notes.read(title);
+      this._editor.value = body;
+    } catch (err) {
+      this._editor.value = '';
+      this._currentTitle = null;
+      this._toast.show(`Failed to open note: ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
     this._updateWordCount();
     if (this._preview.isActive) this._preview.render();
   }
@@ -365,7 +372,9 @@ class NVApp {
       this._notes = notes;
       this._renderResults(this._searchInput.value);
       this._highlightSelected(true);
-      this._reloadIfExternallyModified();
+      this._reloadIfExternallyModified().catch((err) => {
+        this._toast.show(`Reload failed: ${err instanceof Error ? err.message : String(err)}`);
+      });
     });
   }
 
@@ -459,10 +468,10 @@ class NVApp {
         this._editor.focus();
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        this._moveSelectionInList(1);
+        this._moveSelectionInList(1, true);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        this._moveSelectionInList(-1);
+        this._moveSelectionInList(-1, true);
       } else if (e.key === 'Escape') {
         this._searchInput.focus();
       } else if (e.key === 'Delete' && (e.ctrlKey || e.metaKey)) {
@@ -508,7 +517,7 @@ class NVApp {
     this._highlightSelected(true);
   }
 
-  private _moveSelectionInList(delta: number): void {
+  private _moveSelectionInList(delta: number, focusItem = false): void {
     if (this._filtered.length === 0) return;
     this._selectedIndex = Math.max(
       0,
@@ -518,7 +527,7 @@ class NVApp {
     const items = this._resultsList.querySelectorAll('li[data-title]');
     const item = items[this._selectedIndex] as HTMLElement | undefined;
     item?.scrollIntoView({ block: 'nearest' });
-    item?.focus();
+    if (focusItem) item?.focus();
   }
 
   private async _handleRenameCommit(): Promise<void> {
