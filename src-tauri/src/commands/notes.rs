@@ -115,7 +115,11 @@ pub fn list_notes_from_path(vault: &Path) -> Result<Vec<NoteInfo>, String> {
         .filter_map(|e| read_note_info(&e.path()))
         .collect();
 
-    notes.sort_by(|a, b| b.mtime.partial_cmp(&a.mtime).unwrap_or(std::cmp::Ordering::Equal));
+    notes.sort_by(|a, b| {
+        b.mtime
+            .partial_cmp(&a.mtime)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     Ok(notes)
 }
 
