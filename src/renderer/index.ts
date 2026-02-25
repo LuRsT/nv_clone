@@ -553,7 +553,10 @@ class NVApp {
       this._selectedIndex,
       this._searchInput.value,
     );
-    if (!decision) return;
+    if (!decision) {
+      if (this._currentTitle) this._editor.focus();
+      return;
+    }
 
     if (decision.action === 'open') {
       this._searchInput.value = '';
