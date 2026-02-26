@@ -51,6 +51,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
+      - name: Create frontend dist stub
+        run: mkdir -p dist/renderer
+
       - name: Check formatting
         run: cargo fmt -- --check
         working-directory: src-tauri
